@@ -1,0 +1,28 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Production build artifacts
+dist/
+build/
+
+# WhatsApp Private Auth Session (CRITICAL: Never commit authentication keys!)
+server/session_auth/
+session_auth/
+*.session
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

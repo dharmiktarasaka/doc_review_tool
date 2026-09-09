@@ -1,0 +1,12 @@
+{
+  "name": "doc-review-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WhatsApp Automated Clinic Review Tool with Anti-Ban Protection",
+  "scripts": {
+    "start": "cd server && npm start",
+    "server": "cd server && npm start",
+    "build": "cd client && npm install && npm run build",
+    "deploy:client": "cd client && npm run deploy"
+  }
+}
