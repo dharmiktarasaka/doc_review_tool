@@ -29,15 +29,22 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  },
+  transports: ['polling', 'websocket'],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 // Pass socket.io to WhatsApp service and queue
 waService.setSocketIO(io);
 campaignQueue.setSocketIO(io);
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
 app.use(express.json());
 
 // Set up Multer for memory upload
@@ -65,11 +72,29 @@ app.get('/api/whatsapp/status', (req, res) => {
   res.json({ success: true, ...waService.getStatus() });
 });
 
-// 3. Initiate WhatsApp Connection
+// 3. Initiate WhatsApp Connection (waits up to 6s for QR code so HTTP returns QR directly)
 app.post('/api/whatsapp/connect', async (req, res) => {
   try {
-    const status = await waService.init();
-    res.json({ success: true, ...status });
+    let currentStatus = waService.getStatus();
+    if (currentStatus.status === 'connected') {
+      return res.json({ success: true, ...currentStatus });
+    }
+
+    // Trigger WhatsApp connection
+    waService.init().catch((err) => console.error('Background init error:', err));
+
+    // Wait up to 6 seconds for QR code or connected status
+    let waited = 0;
+    while (waited < 6000) {
+      currentStatus = waService.getStatus();
+      if (currentStatus.qrCode || currentStatus.status === 'connected') {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      waited += 400;
+    }
+
+    res.json({ success: true, ...currentStatus });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

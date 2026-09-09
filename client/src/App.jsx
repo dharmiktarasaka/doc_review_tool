@@ -55,10 +55,16 @@ export default function App() {
     logs: []
   });
 
-  // Socket.io initialization
+  // Socket.io & Polling initialization
   useEffect(() => {
     const baseUrl = getApiBaseUrl();
-    const socket = baseUrl ? io(baseUrl, { transports: ['websocket', 'polling'] }) : io();
+    const socket = baseUrl 
+      ? io(baseUrl, { 
+          transports: ['polling', 'websocket'],
+          reconnectionAttempts: 10,
+          timeout: 10000
+        }) 
+      : io({ transports: ['polling', 'websocket'] });
 
     socket.on('wa_status', (data) => {
       setWaStatus(data);
@@ -79,6 +85,27 @@ export default function App() {
         logs: [entry, ...prev.logs.slice(0, 150)]
       }));
     });
+
+    // Active polling fallback for WhatsApp status every 2.5s (critical for cloud deployments like Render & Vercel)
+    const pollInterval = setInterval(() => {
+      fetch(`${baseUrl}/api/whatsapp/status`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setWaStatus((prev) => {
+              if (prev.status !== data.status || prev.qrCode !== data.qrCode || prev.user?.phone !== data.user?.phone) {
+                return {
+                  status: data.status,
+                  qrCode: data.qrCode,
+                  user: data.user
+                };
+              }
+              return prev;
+            });
+          }
+        })
+        .catch(() => {});
+    }, 2500);
 
     // Fetch initial templates
     fetch(`${baseUrl}/api/templates`)
@@ -107,6 +134,7 @@ export default function App() {
       .catch(() => {});
 
     return () => {
+      clearInterval(pollInterval);
       socket.disconnect();
     };
   }, []);

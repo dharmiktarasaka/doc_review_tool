@@ -51,6 +51,10 @@ class WhatsAppService {
       return this.getStatus();
     }
 
+    if (this.status === 'qrcode' && this.qrCode) {
+      return this.getStatus();
+    }
+
     try {
       this.status = 'connecting';
       this.emitState();
@@ -59,15 +63,35 @@ class WhatsAppService {
         fs.mkdirSync(AUTH_FOLDER, { recursive: true });
       }
 
+      // Safely close existing socket before re-creating
+      if (this.sock) {
+        try {
+          this.sock.ev.removeAllListeners();
+          this.sock.end(undefined);
+        } catch (_) {}
+        this.sock = null;
+      }
+
       const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
-      const { version } = await fetchLatestBaileysVersion();
+      
+      // Resilient version fetch with 4s timeout fallback
+      let version = [2, 3000, 1015901307];
+      try {
+        const vInfo = await Promise.race([
+          fetchLatestBaileysVersion(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+        ]).catch(() => null);
+        if (vInfo?.version) {
+          version = vInfo.version;
+        }
+      } catch (_) {}
 
       this.sock = makeWASocket({
         version,
         auth: state,
         logger: this.logger,
-        printQRInTerminal: false,
-        browser: Browsers.windows('Desktop'),
+        printQRInTerminal: true, // Also prints in Render logs for convenience!
+        browser: Browsers.macOS('Desktop'),
         syncFullHistory: false,
         markOnlineOnConnect: true,
         connectTimeoutMs: 120000,
