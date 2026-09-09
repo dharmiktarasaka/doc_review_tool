@@ -141,16 +141,30 @@ export default function App() {
 
   // WhatsApp Handlers
   const handleConnectWA = async () => {
+    const baseUrl = getApiBaseUrl();
+
+    // Prompt user if on live Vercel but hasn't entered Render backend URL yet
+    if (!baseUrl && typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      setIsSettingsOpen(true);
+      alert('⚠️ Please set your Render Backend Server URL first! Click "Server URL" in the top navigation bar.');
+      return;
+    }
+
     try {
-      const baseUrl = getApiBaseUrl();
       setWaStatus((prev) => ({ ...prev, status: 'connecting' }));
-      const res = await fetch(`${baseUrl}/api/whatsapp/connect`, { method: 'POST' });
+      const res = await fetch(`${baseUrl}/api/whatsapp/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true })
+      });
       const data = await res.json();
       if (data.success) {
         setWaStatus(data);
       }
     } catch (err) {
       console.error('Error connecting WhatsApp:', err);
+      alert('Could not reach the backend server. Note: On Render free tier, the server sleeps when inactive and takes ~30-45 seconds to wake up. Please wait a moment and click "Retry / Force Fresh QR".');
+      setWaStatus((prev) => ({ ...prev, status: 'disconnected' }));
     }
   };
 

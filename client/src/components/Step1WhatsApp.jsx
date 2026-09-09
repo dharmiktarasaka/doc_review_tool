@@ -72,7 +72,7 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
           </div>
         ) : (
           <div>
-            {isWaitingQR && waStatus?.qrCode ? (
+            {waStatus?.qrCode ? (
               <div style={{
                 background: 'rgba(15, 23, 42, 0.8)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -118,7 +118,13 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
               <div style={{ padding: '40px 20px', marginBottom: '20px' }}>
                 <div className="status-dot" style={{ width: '20px', height: '20px', margin: '0 auto 16px', background: '#00b4d8' }}></div>
                 <h3 style={{ fontSize: '18px', color: '#ffffff', marginBottom: '8px' }}>Generating WhatsApp QR Pairing Code...</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Please wait 5-10 seconds while the secure connection handshake completes.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '440px', margin: '0 auto 16px', lineHeight: '1.6' }}>
+                  Connecting to WhatsApp servers... If this takes longer than 15s on Render's free tier, click Retry below.
+                </p>
+                <button className="btn btn-secondary" style={{ padding: '8px 18px', fontSize: '13px' }} onClick={onConnect}>
+                  <RefreshCw size={14} />
+                  <span>Retry / Force Fresh QR</span>
+                </button>
               </div>
             ) : (
               <div style={{

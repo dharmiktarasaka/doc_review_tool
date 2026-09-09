@@ -47,21 +47,18 @@ class WhatsAppService {
   }
 
   async init() {
-    if (this.status === 'connected' && this.sock) {
+  async init(forceNew = false) {
+    if (this.status === 'connected' && this.sock && !forceNew) {
       return this.getStatus();
     }
 
-    if (this.status === 'qrcode' && this.qrCode) {
+    if (this.status === 'qrcode' && this.qrCode && !forceNew) {
       return this.getStatus();
     }
 
     try {
       this.status = 'connecting';
       this.emitState();
-
-      if (!fs.existsSync(AUTH_FOLDER)) {
-        fs.mkdirSync(AUTH_FOLDER, { recursive: true });
-      }
 
       // Safely close existing socket before re-creating
       if (this.sock) {
@@ -72,10 +69,23 @@ class WhatsAppService {
         this.sock = null;
       }
 
+      // If forceNew, wipe previous stale session files so Baileys generates a fresh QR code
+      if (forceNew && fs.existsSync(AUTH_FOLDER)) {
+        try {
+          fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+        } catch (e) {
+          console.warn('Error clearing auth folder:', e.message);
+        }
+      }
+
+      if (!fs.existsSync(AUTH_FOLDER)) {
+        fs.mkdirSync(AUTH_FOLDER, { recursive: true });
+      }
+
       const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
       
-      // Resilient version fetch with 4s timeout fallback
-      let version = [2, 3000, 1015901307];
+      // Resilient version fetch with latest WhatsApp Web protocol fallback
+      let version = [2, 3000, 1043857760];
       try {
         const vInfo = await Promise.race([
           fetchLatestBaileysVersion(),
@@ -86,12 +96,14 @@ class WhatsAppService {
         }
       } catch (_) {}
 
+      console.log('Starting WhatsApp Baileys with version:', version);
+
       this.sock = makeWASocket({
         version,
         auth: state,
         logger: this.logger,
-        printQRInTerminal: true, // Also prints in Render logs for convenience!
-        browser: Browsers.macOS('Desktop'),
+        printQRInTerminal: true,
+        browser: Browsers.ubuntu('Chrome'),
         syncFullHistory: false,
         markOnlineOnConnect: true,
         connectTimeoutMs: 120000,
@@ -132,14 +144,21 @@ class WhatsAppService {
 
           if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+            const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
 
             console.log(`WhatsApp connection closed (statusCode: ${statusCode}).`);
             this.status = 'disconnected';
+            this.qrCode = null;
             this.emitState();
 
-            // Reconnect if credentials exist and user hasn't logged out
-            if (!isLoggedOut && fs.existsSync(path.join(AUTH_FOLDER, 'creds.json'))) {
+            if (isLoggedOut) {
+              console.log('⚠️ Session logged out or expired. Clearing invalid session credentials...');
+              try {
+                if (fs.existsSync(AUTH_FOLDER)) {
+                  fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+                }
+              } catch (_) {}
+            } else if (fs.existsSync(path.join(AUTH_FOLDER, 'creds.json'))) {
               console.log('🔄 Session credentials found. Re-establishing connection in 3s...');
               setTimeout(() => {
                 this.init().catch((e) => console.warn('Reconnect retry failed:', e.message));

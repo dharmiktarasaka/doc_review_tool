@@ -72,20 +72,21 @@ app.get('/api/whatsapp/status', (req, res) => {
   res.json({ success: true, ...waService.getStatus() });
 });
 
-// 3. Initiate WhatsApp Connection (waits up to 6s for QR code so HTTP returns QR directly)
+// 3. Initiate WhatsApp Connection (waits up to 10s for QR code so HTTP returns QR directly)
 app.post('/api/whatsapp/connect', async (req, res) => {
   try {
+    const force = req.body?.force === true;
     let currentStatus = waService.getStatus();
-    if (currentStatus.status === 'connected') {
+    if (currentStatus.status === 'connected' && !force) {
       return res.json({ success: true, ...currentStatus });
     }
 
-    // Trigger WhatsApp connection
-    waService.init().catch((err) => console.error('Background init error:', err));
+    // Trigger WhatsApp connection with optional force wipe
+    waService.init(force).catch((err) => console.error('Background init error:', err));
 
-    // Wait up to 6 seconds for QR code or connected status
+    // Wait up to 10 seconds for QR code or connected status
     let waited = 0;
-    while (waited < 6000) {
+    while (waited < 10000) {
       currentStatus = waService.getStatus();
       if (currentStatus.qrCode || currentStatus.status === 'connected') {
         break;
