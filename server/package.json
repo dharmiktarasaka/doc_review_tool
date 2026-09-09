@@ -4,12 +4,14 @@
   "description": "WhatsApp Review Automation Backend for Doctor Clinics",
   "main": "index.js",
   "type": "module",
+  "license": "ISC",
   "scripts": {
     "start": "node index.js",
+    "build": "echo 'Backend server ready'",
     "dev": "node --watch index.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.9",
+    "@whiskeysockets/baileys": "^6.7.24",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
