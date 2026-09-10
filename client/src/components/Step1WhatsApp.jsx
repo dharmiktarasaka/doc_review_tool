@@ -119,10 +119,20 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
               </div>
             ) : isConnecting ? (
               <div style={{ padding: '40px 20px', marginBottom: '20px' }}>
-                <div className="status-dot" style={{ width: '20px', height: '20px', margin: '0 auto 16px', background: '#0284c7' }}></div>
-                <h3 style={{ fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>Generating WhatsApp QR Pairing Code...</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '440px', margin: '0 auto 16px', lineHeight: '1.6' }}>
-                  Connecting to WhatsApp servers... If this takes longer than 15s on Render's free tier, click Retry below.
+                <div style={{
+                  width: '48px', height: '48px', margin: '0 auto 20px',
+                  border: '3px solid #e2e8f0',
+                  borderTopColor: '#0284c7',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <h3 style={{ fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>Connecting to WhatsApp Servers...</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '480px', margin: '0 auto 8px', lineHeight: '1.6' }}>
+                  Generating your QR pairing code. This may take <b>30-60 seconds</b> on Render's free tier as the server wakes up.
+                </p>
+                <p style={{ color: '#0284c7', fontSize: '13px', fontWeight: '500', marginBottom: '20px' }}>
+                  ⏳ Please wait — do not close this page
                 </p>
                 <button className="btn btn-secondary" style={{ padding: '8px 18px', fontSize: '13px' }} onClick={onConnect}>
                   <RefreshCw size={14} />

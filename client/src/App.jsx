@@ -143,7 +143,6 @@ export default function App() {
   const handleConnectWA = async () => {
     const baseUrl = getApiBaseUrl();
 
-
     try {
       setWaStatus((prev) => ({ ...prev, status: 'connecting' }));
       const res = await fetch(`${baseUrl}/api/whatsapp/connect`, {
@@ -153,11 +152,18 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
-        setWaStatus(data);
+        if (data.qrCode || data.status === 'connected') {
+          // QR or connection arrived within the HTTP wait window
+          setWaStatus(data);
+        } else {
+          // Backend is still generating QR — keep 'connecting' state
+          // The 2.5s polling interval will automatically pick up the QR
+          console.log('QR not ready yet from HTTP. Waiting for polling/Socket.IO to deliver it...');
+        }
       }
     } catch (err) {
       console.error('Error connecting WhatsApp:', err);
-      alert('Could not reach the backend server. Note: On Render free tier, the server sleeps when inactive and takes ~30-45 seconds to wake up. Please wait a moment and click "Retry / Force Fresh QR".');
+      alert('Could not reach the backend server. On Render free tier, the server sleeps when inactive and takes ~30-45 seconds to wake up. Please wait a moment and try again.');
       setWaStatus((prev) => ({ ...prev, status: 'disconnected' }));
     }
   };

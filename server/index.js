@@ -82,17 +82,25 @@ app.post('/api/whatsapp/connect', async (req, res) => {
     }
 
     // Trigger WhatsApp connection with optional force wipe
+    console.log(`[Connect] Starting WhatsApp init (force=${force})...`);
     waService.init(force).catch((err) => console.error('Background init error:', err));
 
-    // Wait up to 10 seconds for QR code or connected status
+    // Wait up to 30 seconds for QR code or connected status
+    // Render free tier can take 15-25s for Baileys to connect and generate QR
     let waited = 0;
-    while (waited < 10000) {
+    const maxWait = 30000;
+    while (waited < maxWait) {
       currentStatus = waService.getStatus();
       if (currentStatus.qrCode || currentStatus.status === 'connected') {
+        console.log(`[Connect] Got result after ${waited}ms: status=${currentStatus.status}, hasQR=${!!currentStatus.qrCode}`);
         break;
       }
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      waited += 400;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      waited += 500;
+    }
+
+    if (!currentStatus.qrCode && currentStatus.status !== 'connected') {
+      console.log(`[Connect] Timeout after ${maxWait}ms. Status: ${currentStatus.status}. QR may arrive via Socket.IO.`);
     }
 
     res.json({ success: true, ...currentStatus });
