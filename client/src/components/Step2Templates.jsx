@@ -271,15 +271,15 @@ export default function Step2Templates({
                   style={{ cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '10px' }}>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                         <span className="template-badge">{tpl.category}</span>
-                        <span style={{ fontSize: '12px', color: 'var(--text-faint)' }}>#{tpl.id}</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>#{tpl.id}</span>
                       </div>
-                      <h4 style={{ fontSize: '15px', fontWeight: '700', color: isSelected ? '#0284c7' : 'var(--text-main)' }}>
+                      <h4 className="template-title" style={{ fontSize: '16px', fontWeight: '800', color: isSelected ? '#0284c7' : '#0f172a', letterSpacing: '-0.2px', margin: 0 }}>
                         {tpl.title}
                       </h4>
-                      <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      <div className="template-desc" style={{ fontSize: '13px', color: isSelected ? '#334155' : '#475569', marginTop: '5px', lineHeight: '1.5' }}>
                         {tpl.description}
                       </div>
                     </div>
@@ -289,30 +289,58 @@ export default function Step2Templates({
                         e.stopPropagation();
                         onToggleTemplate(tpl.id);
                       }}
-                      style={{ cursor: 'pointer', padding: '4px' }}
+                      style={{ 
+                        cursor: 'pointer', 
+                        padding: '6px',
+                        background: isSelected ? '#ecfdf5' : '#f8fafc',
+                        border: isSelected ? '1.5px solid #a7f3d0' : '1.5px solid #e2e8f0',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                        boxShadow: isSelected ? '0 2px 6px rgba(5, 150, 105, 0.12)' : 'none'
+                      }}
+                      title={isSelected ? 'Selected template (click to deselect)' : 'Click to select this template'}
                     >
                       {isSelected ? (
-                        <CheckSquare size={24} color="#059669" />
+                        <CheckSquare size={20} color="#059669" />
                       ) : (
-                        <Square size={24} color="var(--text-faint)" />
+                        <Square size={20} color="#94a3b8" />
                       )}
                     </div>
                   </div>
 
                   {isEditing ? (
-                    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '12px' }}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                        <label style={{ fontSize: '11.5px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                          Edit WhatsApp Message
+                        </label>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                          Supports {`{{patient_name}}`}, {`{{clinic_name}}`}, {`{{doctor_name}}`}, & {`{{review_link}}`}
+                        </span>
+                      </div>
                       <textarea
                         className="input-field"
                         rows={6}
                         value={editDraftText}
                         onChange={(e) => setEditDraftText(e.target.value)}
-                        style={{ fontSize: '13px' }}
+                        style={{
+                          fontSize: '13px',
+                          lineHeight: '1.6',
+                          color: '#0f172a',
+                          background: '#ffffff',
+                          border: '1.5px solid #0284c7',
+                          boxShadow: '0 0 0 3px rgba(2, 132, 199, 0.12)',
+                          borderRadius: '10px'
+                        }}
                       />
                       <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: '12px' }} onClick={() => handleSaveEdit(tpl.id)}>
+                        <button className="btn btn-primary" style={{ padding: '7px 18px', fontSize: '13px' }} onClick={() => handleSaveEdit(tpl.id)}>
                           Save Changes
                         </button>
-                        <button className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: '12px' }} onClick={() => setEditingId(null)}>
+                        <button className="btn btn-secondary" style={{ padding: '7px 16px', fontSize: '13px' }} onClick={() => setEditingId(null)}>
                           Cancel
                         </button>
                       </div>
@@ -331,7 +359,7 @@ export default function Step2Templates({
                         <span>Edit Text</span>
                       </button>
 
-                      <div style={{ fontSize: '12px', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
                         <Eye size={13} />
                         <span>Viewing on simulator</span>
                       </div>
