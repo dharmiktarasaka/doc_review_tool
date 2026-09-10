@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Server, Check, X, Globe, AlertCircle, RefreshCw } from 'lucide-react';
-import { getApiBaseUrl, setApiBaseUrl } from '../config.js';
+import { getApiBaseUrl, setApiBaseUrl, DEFAULT_PRODUCTION_API_URL } from '../config.js';
 
 export default function BackendSettingsModal({ isOpen, onClose, onSaved }) {
   const [url, setUrl] = useState(getApiBaseUrl());
@@ -21,8 +21,8 @@ export default function BackendSettingsModal({ isOpen, onClose, onSaved }) {
   };
 
   const handleReset = () => {
-    setUrl('');
-    setApiBaseUrl('');
+    setUrl(DEFAULT_PRODUCTION_API_URL);
+    setApiBaseUrl(DEFAULT_PRODUCTION_API_URL);
     setSavedSuccess(true);
     setTimeout(() => {
       onSaved();
@@ -77,13 +77,13 @@ export default function BackendSettingsModal({ isOpen, onClose, onSaved }) {
               className="input-field"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="e.g. https://docreview-backend.onrender.com"
+              placeholder="e.g. https://rewgenrator.onrender.com"
               style={{ paddingLeft: '38px', fontSize: '14px' }}
             />
             <Globe size={16} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--text-muted)' }} />
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-faint)', marginTop: '8px', lineHeight: '1.5' }}>
-            When deployed on <b>GitHub Pages</b>, paste your live Render Web Service URL here (or leave blank if running both locally).
+            Default production endpoint: <b>https://rewgenrator.onrender.com</b>. You can customize it if you host your own backend.
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export default function BackendSettingsModal({ isOpen, onClose, onSaved }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
           <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '8px 14px' }} onClick={handleReset}>
             <RefreshCw size={14} />
-            <span>Reset (Localhost)</span>
+            <span>Reset to Default</span>
           </button>
 
           <div style={{ display: 'flex', gap: '10px' }}>

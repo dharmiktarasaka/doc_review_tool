@@ -1,5 +1,7 @@
 // Dynamic Backend API & WebSocket URL configuration
-// Supports VITE_API_URL env variable during build OR localStorage override in UI for easy deployment
+// Fixed Production Backend URL: https://rewgenrator.onrender.com
+
+export const DEFAULT_PRODUCTION_API_URL = 'https://rewgenrator.onrender.com';
 
 export const isLocalEnvironment = () => {
   if (typeof window === 'undefined') return false;
@@ -20,32 +22,35 @@ export const isLocalEnvironment = () => {
 
 export const getApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
+    // 1. Check if user explicitly set a custom URL in localStorage
     const customUrl = localStorage.getItem('DOCREVIEW_API_URL');
     if (customUrl && customUrl.trim()) {
       return customUrl.trim().replace(/\/+$/, '');
     }
 
+    // 2. Check if build-time environment variable is provided
     if (import.meta.env.VITE_API_URL) {
       return import.meta.env.VITE_API_URL.trim().replace(/\/+$/, '');
     }
 
-    // When running locally, default to http://localhost:5050 (or current LAN host on port 5050)
+    // 3. When running in local development mode, connect to localhost:5050
     if (isLocalEnvironment()) {
       const h = window.location.hostname;
       const host = (!h || h === '0.0.0.0') ? 'localhost' : h;
       return `http://${host}:5050`;
     }
   }
-  return (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
+  // 4. Default fixed backend URL for GitHub Pages / Vercel / production
+  return DEFAULT_PRODUCTION_API_URL;
 };
 
 export const setApiBaseUrl = (url) => {
   if (typeof window !== 'undefined') {
-    if (!url || !url.trim()) {
+    if (!url || !url.trim() || url.trim() === DEFAULT_PRODUCTION_API_URL) {
       localStorage.removeItem('DOCREVIEW_API_URL');
     } else {
       localStorage.setItem('DOCREVIEW_API_URL', url.trim().replace(/\/+$/, ''));
     }
   }
 };
-

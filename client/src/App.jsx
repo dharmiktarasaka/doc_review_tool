@@ -143,11 +143,6 @@ export default function App() {
   const handleConnectWA = async () => {
     const baseUrl = getApiBaseUrl();
 
-    // Only prompt user if on live cloud deployment (e.g. Vercel) and no backend URL is set
-    if (!baseUrl && !isLocalEnvironment()) {
-      setIsSettingsOpen(true);
-      return;
-    }
 
     try {
       setWaStatus((prev) => ({ ...prev, status: 'connecting' }));

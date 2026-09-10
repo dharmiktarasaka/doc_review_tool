@@ -38,8 +38,8 @@ git push -u origin main
    - **Start Command:** `npm start`
    - **Instance Type:** `Free`
 5. Click **Create Web Service**.
-6. Wait 1-2 minutes for Render to build. Once live, Render will give you a public URL, for example:
-   👉 `https://docreview-backend.onrender.com`
+6. Wait 1-2 minutes for Render to build. Once live, your backend is ready at:
+   👉 `https://rewgenrator.onrender.com`
 
 ---
 
@@ -49,7 +49,7 @@ git push -u origin main
 1. In your GitHub repository, go to **Settings** → **Pages**.
 2. Under **Build and deployment** → **Source**, select **GitHub Actions**.
 3. That's it! Every time you push to `main`, GitHub Actions will automatically build and publish your frontend to:
-   👉 `https://YOUR_GITHUB_USERNAME.github.io/doc_review_tool/`
+   👉 `https://dharmiktarasaka.github.io/doc_review_tool/`
 
 ### Option B: Quick CLI Deploy (Optional)
 From your local terminal, run:
@@ -60,13 +60,10 @@ npm run deploy
 
 ---
 
-## 🔗 Step 4: Connect Frontend to Your Render Backend
+## 🔗 Step 4: Ready Out-of-the-Box!
 
-1. Open your live GitHub Pages website: `https://YOUR_GITHUB_USERNAME.github.io/doc_review_tool/`
-2. In the top navigation bar, click the **"Server URL"** button.
-3. Paste your live Render backend URL:
-   `https://docreview-backend.onrender.com`
-4. Click **Save & Connect**.
-5. The site will refresh and link directly to your Render backend via WebSockets!
+Your frontend is **already pre-configured** with your live backend endpoint (`https://rewgenrator.onrender.com`).
 
-You can now generate the QR code, link WhatsApp, pick doctor templates, upload patient Excel sheets, and send review requests directly from your live hosted URL.
+- When users open the website, they can **directly click "Scan QR" / "Pair WhatsApp"** and generate the QR code instantly without entering any server URL!
+- If you ever need to point to a custom server, you can still click **"Server"** in the top navigation bar to adjust it anytime.
+
