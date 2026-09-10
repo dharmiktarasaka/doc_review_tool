@@ -11,11 +11,22 @@ import FAQSection from './components/FAQSection.jsx';
 import Footer from './components/Footer.jsx';
 import BackendSettingsModal from './components/BackendSettingsModal.jsx';
 import WorkspaceModal from './components/WorkspaceModal.jsx';
+import PatientReviewPortal from './components/PatientReviewPortal.jsx';
 import { getApiBaseUrl } from './config.js';
 import { getWorkspaceId, fetchWithSession } from './services/sessionService.js';
+import { DEFAULT_GOOGLE_REVIEWS } from './data/defaultReviews.js';
 import { Smartphone, Sparkles, FileSpreadsheet, Send, ShieldCheck, Check } from 'lucide-react';
 
 export default function App() {
+  // Check if patient opened a smart review link (e.g. ?review=1)
+  const isPatientReviewUrl = typeof window !== 'undefined' && 
+    (new URLSearchParams(window.location.search).get('review') === '1' || 
+     new URLSearchParams(window.location.search).get('r') === '1');
+
+  if (isPatientReviewUrl) {
+    return <PatientReviewPortal />;
+  }
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
@@ -31,9 +42,18 @@ export default function App() {
     user: null
   });
 
-  // Templates
+  // WhatsApp Message Templates (Rotation)
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([1, 2, 3]);
+
+  // 10 Pre-Crafted Google Reviews (saved per workspace)
+  const [googleReviews, setGoogleReviews] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`docreview_reviews_${getWorkspaceId()}`);
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return DEFAULT_GOOGLE_REVIEWS;
+  });
 
   // Clinic details (saved per workspace)
   const [clinicConfig, setClinicConfig] = useState(() => {
@@ -45,7 +65,8 @@ export default function App() {
       clinic_name: 'CareWell Multispecialty Clinic',
       doctor_name: 'Dr. Aryan Mehta, MD',
       review_link: 'https://g.page/r/your-google-review-link',
-      default_country_code: '91'
+      default_country_code: '91',
+      use_smart_bridge: true
     };
   });
 
@@ -78,6 +99,27 @@ export default function App() {
     });
   };
 
+  // Update a single Google review template
+  const handleUpdateGoogleReview = (id, newText) => {
+    setGoogleReviews((prev) => {
+      const updated = prev.map((r) => r.id === id ? { ...r, text: newText } : r);
+      try {
+        localStorage.setItem(`docreview_reviews_${workspaceId}`, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+  };
+
+  // Reset 10 Google reviews back to defaults
+  const handleResetGoogleReviews = () => {
+    if (window.confirm('Reset all 10 reviews back to standard doctor/clinic templates?')) {
+      setGoogleReviews(DEFAULT_GOOGLE_REVIEWS);
+      try {
+        localStorage.setItem(`docreview_reviews_${workspaceId}`, JSON.stringify(DEFAULT_GOOGLE_REVIEWS));
+      } catch (_) {}
+    }
+  };
+
   // Switch Workspace Handler (Multi-Device Sync / Isolation)
   const handleWorkspaceChanged = (newWorkspaceId) => {
     setWorkspaceIdState(newWorkspaceId);
@@ -94,16 +136,24 @@ export default function App() {
 
     // Load clinicConfig for the new workspace if saved
     try {
-      const saved = localStorage.getItem(`docreview_clinic_${newWorkspaceId}`);
-      if (saved) {
-        setClinicConfig(JSON.parse(saved));
+      const savedClinic = localStorage.getItem(`docreview_clinic_${newWorkspaceId}`);
+      if (savedClinic) {
+        setClinicConfig(JSON.parse(savedClinic));
       } else {
         setClinicConfig({
           clinic_name: 'CareWell Multispecialty Clinic',
           doctor_name: 'Dr. Aryan Mehta, MD',
           review_link: 'https://g.page/r/your-google-review-link',
-          default_country_code: '91'
+          default_country_code: '91',
+          use_smart_bridge: true
         });
+      }
+
+      const savedReviews = localStorage.getItem(`docreview_reviews_${newWorkspaceId}`);
+      if (savedReviews) {
+        setGoogleReviews(JSON.parse(savedReviews));
+      } else {
+        setGoogleReviews(DEFAULT_GOOGLE_REVIEWS);
       }
     } catch (_) {}
   };
@@ -288,10 +338,26 @@ export default function App() {
   const handleStartCampaign = async (payload) => {
     try {
       const baseUrl = getApiBaseUrl();
+      const finalConfig = { ...payload.clinicConfig };
+
+      // If smart bridge enabled, rewrite review_link to point to the smart auto-fill page
+      if (finalConfig.use_smart_bridge !== false && typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        const path = window.location.pathname;
+        const clinic = encodeURIComponent(finalConfig.clinic_name || 'CareWell Multispecialty Clinic');
+        const doc = encodeURIComponent(finalConfig.doctor_name || 'Dr. Aryan Mehta, MD');
+        const target = encodeURIComponent(finalConfig.review_link || 'https://search.google.com/local/writereview');
+        const ws = encodeURIComponent(workspaceId);
+        finalConfig.review_link = `${origin}${path}?review=1&ws=${ws}&clinic=${clinic}&doc=${doc}&target=${target}`;
+      }
+
       const res = await fetchWithSession(`${baseUrl}/api/campaign/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          ...payload,
+          clinicConfig: finalConfig
+        })
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -418,7 +484,7 @@ export default function App() {
           </div>
         )}
 
-        {/* STEP 2: Doctor Template Customizer */}
+        {/* STEP 2: Doctor Template Customizer & 10 Google Reviews Manager */}
         {currentStep === 2 && (
           <div className="step-content">
             <Step2Templates
@@ -428,6 +494,10 @@ export default function App() {
               onUpdateTemplateText={handleUpdateTemplateText}
               clinicConfig={clinicConfig}
               onChangeClinicConfig={handleChangeClinicConfig}
+              googleReviews={googleReviews}
+              onUpdateGoogleReview={handleUpdateGoogleReview}
+              onResetGoogleReviews={handleResetGoogleReviews}
+              workspaceId={workspaceId}
               onNext={() => setCurrentStep(3)}
               onBack={() => setCurrentStep(1)}
             />

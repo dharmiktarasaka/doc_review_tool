@@ -1,5 +1,25 @@
 import React, { useState } from 'react';
-import { CheckSquare, Square, Edit3, Eye, Sparkles, Building2, Stethoscope, Link as LinkIcon, CheckCircle2, ArrowRight, ArrowLeft, ExternalLink, Globe } from 'lucide-react';
+import { 
+  CheckSquare, 
+  Square, 
+  Edit3, 
+  Eye, 
+  Sparkles, 
+  Building2, 
+  Stethoscope, 
+  Link as LinkIcon, 
+  CheckCircle2, 
+  ArrowRight, 
+  ArrowLeft, 
+  ExternalLink, 
+  Globe, 
+  Star, 
+  MessageSquare, 
+  RotateCcw, 
+  Copy, 
+  Check 
+} from 'lucide-react';
+import { DEFAULT_GOOGLE_REVIEWS, formatGoogleReview } from '../data/defaultReviews.js';
 
 export default function Step2Templates({
   templates,
@@ -8,27 +28,58 @@ export default function Step2Templates({
   clinicConfig,
   onChangeClinicConfig,
   onUpdateTemplateText,
+  googleReviews = DEFAULT_GOOGLE_REVIEWS,
+  onUpdateGoogleReview,
+  onResetGoogleReviews,
+  workspaceId,
   onNext,
   onBack
 }) {
+  const [activeSubTab, setActiveSubTab] = useState('whatsapp'); // 'whatsapp' | 'google_reviews'
   const [activePreviewId, setActivePreviewId] = useState(selectedTemplateIds[0] || 1);
   const [editingId, setEditingId] = useState(null);
   const [editDraftText, setEditDraftText] = useState('');
+  const [editingGoogleReviewId, setEditingGoogleReviewId] = useState(null);
+  const [editGoogleDraftText, setEditGoogleDraftText] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const selectedCount = selectedTemplateIds.length;
   const isSelectionValid = selectedCount >= 1 && selectedCount <= 5;
-
   const currentPreviewTemplate = templates.find((t) => t.id === activePreviewId) || templates[0];
+
+  // Effective Smart Review Link for this clinic
+  const getSmartBridgeUrl = () => {
+    if (typeof window === 'undefined') return '';
+    const origin = window.location.origin;
+    const path = window.location.pathname;
+    const clinic = encodeURIComponent(clinicConfig.clinic_name || 'CareWell Multispecialty Clinic');
+    const doc = encodeURIComponent(clinicConfig.doctor_name || 'Dr. Aryan Mehta, MD');
+    const target = encodeURIComponent(clinicConfig.review_link || 'https://search.google.com/local/writereview');
+    const ws = encodeURIComponent(workspaceId || 'default');
+    return `${origin}${path}?review=1&ws=${ws}&clinic=${clinic}&doc=${doc}&target=${target}`;
+  };
+
+  const handleCopySmartLink = () => {
+    const url = getSmartBridgeUrl();
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleTestPatientPortal = () => {
+    const url = getSmartBridgeUrl();
+    window.open(url, '_blank');
+  };
 
   // Helper to format simulated live message for preview
   const formatPreview = (rawText) => {
     if (!rawText) return '';
+    const linkToShow = clinicConfig.use_smart_bridge !== false ? getSmartBridgeUrl() : (clinicConfig.review_link || 'https://g.page/r/your-clinic-review');
     return rawText
       .replace(/\{\{patient_name\}\}/gi, 'Rahul Sharma')
       .replace(/\{\{doctor_name\}\}/gi, clinicConfig.doctor_name || 'Dr. Aryan Mehta')
       .replace(/\{\{clinic_name\}\}/gi, clinicConfig.clinic_name || 'City Heart & Dental Clinic')
-      .replace(/\{\{review_link\}\}/gi, clinicConfig.review_link || 'https://g.page/r/your-clinic-review')
-      // Simple preview spintax resolver (first choice)
+      .replace(/\{\{review_link\}\}/gi, linkToShow)
       .replace(/\{([^{}]+)\}/g, (_, choices) => choices.split('|')[0]);
   };
 
@@ -42,6 +93,16 @@ export default function Step2Templates({
     setEditingId(null);
   };
 
+  const handleStartEditGoogleReview = (rev) => {
+    setEditingGoogleReviewId(rev.id);
+    setEditGoogleDraftText(rev.text);
+  };
+
+  const handleSaveEditGoogleReview = (id) => {
+    onUpdateGoogleReview?.(id, editGoogleDraftText);
+    setEditingGoogleReviewId(null);
+  };
+
   return (
     <div className="glass-panel" style={{ padding: '36px 32px' }}>
       
@@ -51,10 +112,10 @@ export default function Step2Templates({
           <Sparkles size={30} />
         </div>
         <h2 style={{ fontSize: '26px', fontWeight: '700', marginBottom: '8px' }}>
-          Step 2: Clinic Details & 5-Star Review Templates
+          Step 2: Clinic Setup & 5-Star Review Automation
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>
-          Choose between <b>1 to 5 SEO-optimized doctor review templates</b>. When your campaign runs, templates are randomly rotated per patient to bypass WhatsApp spam fingerprinting.
+          Configure your clinic details, customize your <b>WhatsApp message rotation</b>, and set up <b>10 pre-written Google reviews</b> that automatically copy to patient clipboards for instant 5-star publishing!
         </p>
       </div>
 
@@ -64,7 +125,7 @@ export default function Step2Templates({
         border: '1px solid #e2e8f0',
         borderRadius: '20px',
         padding: '28px 32px',
-        marginBottom: '36px',
+        marginBottom: '32px',
         boxShadow: '0 10px 25px -5px rgba(2, 132, 199, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03)',
         position: 'relative'
       }}>
@@ -187,7 +248,7 @@ export default function Step2Templates({
                   }}
                   title="Test link in new tab"
                 >
-                  <span>Test Link</span>
+                  <span>Test Google Link</span>
                   <ExternalLink size={12} />
                 </button>
               )}
@@ -213,156 +274,517 @@ export default function Step2Templates({
               </div>
             </div>
 
-            {/* Smart Helper Tip */}
+            {/* Smart 5-Star Auto-Fill Review Bridge Box */}
             <div style={{
-              background: '#f0f9ff',
-              border: '1px solid #bae6fd',
-              borderRadius: '10px',
-              padding: '10px 14px',
-              marginTop: '10px',
+              marginTop: '16px',
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f0fdf4 100%)',
+              border: '1.5px solid #bae6fd',
+              borderRadius: '14px',
+              padding: '16px 20px',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              color: '#0369a1',
-              fontSize: '12.5px'
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
             }}>
-              <span style={{ fontSize: '14px' }}>💡</span>
-              <span>
-                <b>Quick Tip:</b> Open your Google Business Profile dashboard, click <b>"Ask for reviews"</b>, and paste your direct shortlink here.
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'rgba(2, 132, 199, 0.15)',
+                  color: '#0284c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Star size={20} color="#f59e0b" fill="#f59e0b" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0f172a' }}>
+                    10-Review Smart Auto-Fill Bridge (Enabled)
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    Patients receive a link that randomly assigns 1 of your 10 reviews, auto-copies to their clipboard, and pre-selects 5 stars!
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={handleCopySmartLink}
+                  className="btn"
+                  style={{
+                    background: copiedLink ? '#10b981' : '#ffffff',
+                    color: copiedLink ? '#ffffff' : '#0284c7',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    padding: '8px 14px',
+                    fontSize: '12.5px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                  title="Copy the smart patient review link"
+                >
+                  {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiedLink ? 'Copied Link!' : 'Copy Patient Link'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleTestPatientPortal}
+                  className="btn btn-primary"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '12.5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  title="Test patient view in a new tab"
+                >
+                  <span>Preview Patient View</span>
+                  <ExternalLink size={13} />
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
 
-      {/* Main Two-Column Layout: Templates List vs WhatsApp Mockup */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 0.95fr', gap: '28px', alignItems: 'start' }}>
-        
-        {/* Left Column: Template Cards */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <div>
-              <h3 style={{ fontSize: '18px', fontWeight: '700' }}>5 Pre-Crafted Doctor Templates</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Select minimum 1 and maximum 5 templates.</p>
+      {/* Sub-Tab Navigation: WhatsApp Message Templates vs Google 10 Reviews */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '26px',
+        borderBottom: '2px solid #e2e8f0',
+        paddingBottom: '12px',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('whatsapp')}
+          style={{
+            background: activeSubTab === 'whatsapp' ? '#0284c7' : '#f1f5f9',
+            color: activeSubTab === 'whatsapp' ? '#ffffff' : '#475569',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '11px 22px',
+            fontSize: '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s'
+          }}
+        >
+          <MessageSquare size={16} />
+          <span>1. WhatsApp Message Invitations ({selectedCount} Selected)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('google_reviews')}
+          style={{
+            background: activeSubTab === 'google_reviews' ? '#0284c7' : '#f1f5f9',
+            color: activeSubTab === 'google_reviews' ? '#ffffff' : '#475569',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '11px 22px',
+            fontSize: '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s'
+          }}
+        >
+          <Star 
+            size={16} 
+            color={activeSubTab === 'google_reviews' ? '#fde047' : '#f59e0b'} 
+            fill={activeSubTab === 'google_reviews' ? '#fde047' : '#f59e0b'} 
+          />
+          <span>2. Patient 5-Star Reviews (10 Pre-Set Google Reviews)</span>
+        </button>
+      </div>
+
+      {/* SUB-TAB 1: WHATSAPP TEMPLATES ROTATION */}
+      {activeSubTab === 'whatsapp' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 0.95fr', gap: '28px', alignItems: 'start' }}>
+          
+          {/* Left Column: Template Cards */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>5 Pre-Crafted WhatsApp Invitations</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Select between 1 to 5 templates for anti-ban rotation.</p>
+              </div>
+              <div style={{
+                padding: '6px 14px',
+                borderRadius: '999px',
+                fontSize: '13px',
+                fontWeight: '700',
+                background: isSelectionValid ? 'rgba(6, 214, 160, 0.15)' : 'rgba(239, 71, 111, 0.15)',
+                color: isSelectionValid ? '#06d6a0' : '#ef476f',
+                border: `1px solid ${isSelectionValid ? 'rgba(6, 214, 160, 0.3)' : 'rgba(239, 71, 111, 0.3)'}`
+              }}>
+                Selected: {selectedCount} / 5
+              </div>
             </div>
-            <div style={{
-              padding: '6px 14px',
-              borderRadius: '999px',
-              fontSize: '13px',
-              fontWeight: '700',
-              background: isSelectionValid ? 'rgba(6, 214, 160, 0.15)' : 'rgba(239, 71, 111, 0.15)',
-              color: isSelectionValid ? '#06d6a0' : '#ef476f',
-              border: `1px solid ${isSelectionValid ? 'rgba(6, 214, 160, 0.3)' : 'rgba(239, 71, 111, 0.3)'}`
-            }}>
-              Selected: {selectedCount} / 5
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {templates.map((tpl) => {
+                const isSelected = selectedTemplateIds.includes(tpl.id);
+                const isEditing = editingId === tpl.id;
+
+                return (
+                  <div 
+                    key={tpl.id}
+                    className={`template-card ${isSelected ? 'selected' : ''}`}
+                    onClick={() => setActivePreviewId(tpl.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '10px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                          <span className="template-badge">{tpl.category}</span>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>#{tpl.id}</span>
+                        </div>
+                        <h4 className="template-title" style={{ fontSize: '16px', fontWeight: '800', color: isSelected ? '#0284c7' : '#0f172a', letterSpacing: '-0.2px', margin: 0 }}>
+                          {tpl.title}
+                        </h4>
+                        <div className="template-desc" style={{ fontSize: '13px', color: isSelected ? '#334155' : '#475569', marginTop: '5px', lineHeight: '1.5' }}>
+                          {tpl.description}
+                        </div>
+                      </div>
+
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleTemplate(tpl.id);
+                        }}
+                        style={{ 
+                          cursor: 'pointer', 
+                          padding: '6px',
+                          background: isSelected ? '#ecfdf5' : '#f8fafc',
+                          border: isSelected ? '1.5px solid #a7f3d0' : '1.5px solid #e2e8f0',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isSelected ? '0 2px 6px rgba(5, 150, 105, 0.12)' : 'none'
+                        }}
+                        title={isSelected ? 'Selected template (click to deselect)' : 'Click to select this template'}
+                      >
+                        {isSelected ? (
+                          <CheckSquare size={20} color="#059669" />
+                        ) : (
+                          <Square size={20} color="#94a3b8" />
+                        )}
+                      </div>
+                    </div>
+
+                    {isEditing ? (
+                      <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                          <label style={{ fontSize: '11.5px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                            Edit WhatsApp Message
+                          </label>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>
+                            Supports {`{{patient_name}}`}, {`{{clinic_name}}`}, {`{{doctor_name}}`}, & {`{{review_link}}`}
+                          </span>
+                        </div>
+                        <textarea
+                          className="input-field"
+                          rows={6}
+                          value={editDraftText}
+                          onChange={(e) => setEditDraftText(e.target.value)}
+                          style={{
+                            fontSize: '13px',
+                            lineHeight: '1.6',
+                            color: '#0f172a',
+                            background: '#ffffff',
+                            border: '1.5px solid #0284c7',
+                            boxShadow: '0 0 0 3px rgba(2, 132, 199, 0.12)',
+                            borderRadius: '10px'
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                          <button className="btn btn-primary" style={{ padding: '7px 18px', fontSize: '13px' }} onClick={() => handleSaveEdit(tpl.id)}>
+                            Save Changes
+                          </button>
+                          <button className="btn btn-secondary" style={{ padding: '7px 16px', fontSize: '13px' }} onClick={() => setEditingId(null)}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '5px 12px', fontSize: '12px' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(tpl);
+                          }}
+                        >
+                          <Edit3 size={13} />
+                          <span>Edit Text</span>
+                        </button>
+
+                        <div style={{ fontSize: '12px', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                          <Eye size={13} />
+                          <span>Viewing on simulator</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {templates.map((tpl) => {
-              const isSelected = selectedTemplateIds.includes(tpl.id);
-              const isEditing = editingId === tpl.id;
+          {/* Right Column: Interactive WhatsApp Phone Mockup */}
+          <div style={{ position: 'sticky', top: '100px' }}>
+            <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
+                Live WhatsApp Recipient Preview
+              </h3>
+              <span style={{ fontSize: '12px', color: 'var(--text-faint)' }}>
+                Template #{currentPreviewTemplate?.id}
+              </span>
+            </div>
+
+            <div className="chat-preview-card">
+              <div className="chat-preview-header">
+                <div className="chat-avatar">
+                  {(clinicConfig.clinic_name || 'C')[0]?.toUpperCase()}
+                </div>
+                <div style={{ textAlign: 'left', flex: 1 }}>
+                  <div style={{ fontSize: '14.5px', fontWeight: '700', color: '#ffffff', lineHeight: 1.2 }}>
+                    {clinicConfig.clinic_name || 'City Heart & Dental Care'}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#86efac' }}>
+                    official clinic desk • online
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                background: '#efeae2',
+                backgroundImage: 'radial-gradient(rgba(0,0,0,0.05) 1px, transparent 0)',
+                backgroundSize: '16px 16px',
+                padding: '24px 16px',
+                minHeight: '440px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-start'
+              }}>
+                <div style={{
+                  alignSelf: 'center',
+                  background: '#ffffff',
+                  color: '#54656f',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  marginBottom: '16px',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06)'
+                }}>
+                  TODAY
+                </div>
+
+                <div className="chat-bubble">
+                  {formatPreview(currentPreviewTemplate?.text)}
+                  <div className="chat-bubble-time">
+                    <span>10:45 AM</span>
+                    <span style={{ color: '#53bdeb' }}>✓✓</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#f0f2f5', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid #e9edef' }}>
+                <div style={{ background: '#ffffff', border: '1px solid #e9edef', borderRadius: '20px', padding: '8px 14px', fontSize: '13px', color: '#667781', flex: 1, textAlign: 'left' }}>
+                  Type a message...
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* SUB-TAB 2: 10 PATIENT GOOGLE REVIEWS (AUTO-FILL MANAGER) */}
+      {activeSubTab === 'google_reviews' && (
+        <div>
+          {/* Action Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 4px 0', color: '#0f172a' }}>
+                10 Pre-Crafted 5-Star Patient Reviews
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                When patients open the review link, one of these reviews is randomly assigned and auto-copied to their clipboard so they can paste it directly into Google Reviews!
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={onResetGoogleReviews}
+                className="btn btn-secondary"
+                style={{ padding: '8px 14px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Reset all 10 reviews to default healthcare templates"
+              >
+                <RotateCcw size={13} />
+                <span>Reset to Defaults</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleTestPatientPortal}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>Preview Patient Portal</span>
+                <ExternalLink size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Grid of 10 Reviews */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))',
+            gap: '20px'
+          }}>
+            {googleReviews.map((rev) => {
+              const isEditingThis = editingGoogleReviewId === rev.id;
+              const previewText = formatGoogleReview(rev.text, {
+                clinic_name: clinicConfig.clinic_name,
+                doctor_name: clinicConfig.doctor_name
+              });
 
               return (
                 <div 
-                  key={tpl.id}
-                  className={`template-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => setActivePreviewId(tpl.id)}
-                  style={{ cursor: 'pointer' }}
+                  key={rev.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '18px',
+                    padding: '22px',
+                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '10px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                        <span className="template-badge">{tpl.category}</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>#{tpl.id}</span>
-                      </div>
-                      <h4 className="template-title" style={{ fontSize: '16px', fontWeight: '800', color: isSelected ? '#0284c7' : '#0f172a', letterSpacing: '-0.2px', margin: 0 }}>
-                        {tpl.title}
-                      </h4>
-                      <div className="template-desc" style={{ fontSize: '13px', color: isSelected ? '#334155' : '#475569', marginTop: '5px', lineHeight: '1.5' }}>
-                        {tpl.description}
-                      </div>
-                    </div>
-
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleTemplate(tpl.id);
-                      }}
-                      style={{ 
-                        cursor: 'pointer', 
-                        padding: '6px',
-                        background: isSelected ? '#ecfdf5' : '#f8fafc',
-                        border: isSelected ? '1.5px solid #a7f3d0' : '1.5px solid #e2e8f0',
-                        borderRadius: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s ease',
-                        boxShadow: isSelected ? '0 2px 6px rgba(5, 150, 105, 0.12)' : 'none'
-                      }}
-                      title={isSelected ? 'Selected template (click to deselect)' : 'Click to select this template'}
-                    >
-                      {isSelected ? (
-                        <CheckSquare size={20} color="#059669" />
-                      ) : (
-                        <Square size={20} color="#94a3b8" />
-                      )}
-                    </div>
-                  </div>
-
-                  {isEditing ? (
-                    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                        <label style={{ fontSize: '11.5px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                          Edit WhatsApp Message
-                        </label>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>
-                          Supports {`{{patient_name}}`}, {`{{clinic_name}}`}, {`{{doctor_name}}`}, & {`{{review_link}}`}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          background: 'rgba(245, 158, 11, 0.15)',
+                          color: '#b45309',
+                          fontWeight: '800',
+                          fontSize: '11.5px',
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          Review #{rev.id}
+                        </span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
+                          {rev.category}
                         </span>
                       </div>
-                      <textarea
-                        className="input-field"
-                        rows={6}
-                        value={editDraftText}
-                        onChange={(e) => setEditDraftText(e.target.value)}
-                        style={{
-                          fontSize: '13px',
-                          lineHeight: '1.6',
-                          color: '#0f172a',
-                          background: '#ffffff',
-                          border: '1.5px solid #0284c7',
-                          boxShadow: '0 0 0 3px rgba(2, 132, 199, 0.12)',
-                          borderRadius: '10px'
-                        }}
-                      />
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <button className="btn btn-primary" style={{ padding: '7px 18px', fontSize: '13px' }} onClick={() => handleSaveEdit(tpl.id)}>
-                          Save Changes
-                        </button>
-                        <button className="btn btn-secondary" style={{ padding: '7px 16px', fontSize: '13px' }} onClick={() => setEditingId(null)}>
-                          Cancel
-                        </button>
+                      <div style={{ display: 'flex', gap: '2px' }}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} size={14} color="#f59e0b" fill="#f59e0b" />
+                        ))}
                       </div>
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '5px 12px', fontSize: '12px' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartEdit(tpl);
-                        }}
-                      >
-                        <Edit3 size={13} />
-                        <span>Edit Text</span>
-                      </button>
 
-                      <div style={{ fontSize: '12px', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                        <Eye size={13} />
-                        <span>Viewing on simulator</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', margin: '0 0 10px 0' }}>
+                      {rev.title}
+                    </h4>
+
+                    {isEditingThis ? (
+                      <div>
+                        <textarea
+                          rows={4}
+                          value={editGoogleDraftText}
+                          onChange={(e) => setEditGoogleDraftText(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '10px',
+                            border: '1.5px solid #0284c7',
+                            fontSize: '13px',
+                            lineHeight: '1.5',
+                            color: '#0f172a',
+                            fontFamily: 'inherit',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ padding: '6px 14px', fontSize: '12px' }}
+                            onClick={() => handleSaveEditGoogleReview(rev.id)}
+                          >
+                            Save Review #{rev.id}
+                          </button>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => setEditingGoogleReviewId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
+                    ) : (
+                      <div style={{
+                        background: '#f8fafc',
+                        border: '1px solid #f1f5f9',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        fontSize: '13px',
+                        lineHeight: '1.6',
+                        color: '#334155',
+                        fontStyle: 'italic'
+                      }}>
+                        "{previewText}"
+                      </div>
+                    )}
+                  </div>
+
+                  {!isEditingThis && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
+                      <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                        {previewText.length} characters
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditGoogleReview(rev)}
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Edit3 size={11} />
+                        <span>Edit Review Text</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -370,78 +792,7 @@ export default function Step2Templates({
             })}
           </div>
         </div>
-
-        {/* Right Column: Interactive WhatsApp Phone Mockup */}
-        <div style={{ position: 'sticky', top: '100px' }}>
-          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)' }}>
-              Live WhatsApp Recipient Preview
-            </h3>
-            <span style={{ fontSize: '12px', color: 'var(--text-faint)' }}>
-              Template #{currentPreviewTemplate?.id}
-            </span>
-          </div>
-
-          <div className="chat-preview-card">
-            {/* WhatsApp App Bar */}
-            <div className="chat-preview-header">
-              <div className="chat-avatar">
-                {(clinicConfig.clinic_name || 'C')[0]?.toUpperCase()}
-              </div>
-              <div style={{ textAlign: 'left', flex: 1 }}>
-                <div style={{ fontSize: '14.5px', fontWeight: '700', color: '#ffffff', lineHeight: 1.2 }}>
-                  {clinicConfig.clinic_name || 'City Heart & Dental Care'}
-                </div>
-                <div style={{ fontSize: '11px', color: '#86efac' }}>
-                  official clinic desk • online
-                </div>
-              </div>
-            </div>
-
-            {/* Chat Canvas */}
-            <div style={{
-              background: '#efeae2',
-              backgroundImage: 'radial-gradient(rgba(0,0,0,0.05) 1px, transparent 0)',
-              backgroundSize: '16px 16px',
-              padding: '24px 16px',
-              minHeight: '440px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-start'
-            }}>
-              <div style={{
-                alignSelf: 'center',
-                background: '#ffffff',
-                color: '#54656f',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                marginBottom: '16px',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06)'
-              }}>
-                TODAY
-              </div>
-
-              {/* Message Bubble */}
-              <div className="chat-bubble">
-                {formatPreview(currentPreviewTemplate?.text)}
-                <div className="chat-bubble-time">
-                  <span>10:45 AM</span>
-                  <span style={{ color: '#53bdeb' }}>✓✓</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Simulated Input bar - Authentic WhatsApp light style */}
-            <div style={{ background: '#f0f2f5', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid #e9edef' }}>
-              <div style={{ background: '#ffffff', border: '1px solid #e9edef', borderRadius: '20px', padding: '8px 14px', fontSize: '13px', color: '#667781', flex: 1, textAlign: 'left' }}>
-                Type a message...
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
+      )}
 
       {/* Navigation Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
