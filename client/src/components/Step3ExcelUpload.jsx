@@ -105,30 +105,66 @@ export default function Step3ExcelUpload({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'rgba(15, 23, 42, 0.6)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '14px',
-        padding: '16px 20px',
+        background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f8fafc 100%)',
+        border: '1.5px solid #bae6fd',
+        borderRadius: '16px',
+        padding: '18px 24px',
         marginBottom: '28px',
+        boxShadow: '0 8px 20px -4px rgba(2, 132, 199, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.03)',
         flexWrap: 'wrap',
-        gap: '12px'
+        gap: '16px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ background: '#e0f2fe', padding: '10px', borderRadius: '10px', color: '#0284c7' }}>
-            <FileSpreadsheet size={20} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+            padding: '12px',
+            borderRadius: '12px',
+            color: '#0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.15)'
+          }}>
+            <FileSpreadsheet size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>
-              Need the standard template?
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+              <span style={{ fontSize: '15.5px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.2px' }}>
+                Need the standard patient template?
+              </span>
+              <span style={{
+                background: '#e0f2fe',
+                color: '#0284c7',
+                fontSize: '11px',
+                fontWeight: '700',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid #bae6fd'
+              }}>
+                Starter File
+              </span>
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Supports .xlsx, .xls, and .csv with standard columns like "Name" and "Phone"
+            <div style={{ fontSize: '13px', color: '#475569' }}>
+              Pre-formatted with <b>Patient Name</b> & <b>Phone</b> columns. Supports .xlsx, .xls, and .csv formats.
             </div>
           </div>
         </div>
 
-        <button className="btn btn-secondary" onClick={handleDownloadSample}>
-          <Download size={15} />
+        <button 
+          className="btn btn-secondary" 
+          onClick={handleDownloadSample}
+          style={{
+            background: '#ffffff',
+            border: '1.5px solid #0284c7',
+            color: '#0284c7',
+            fontWeight: '700',
+            fontSize: '13.5px',
+            padding: '10px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.1)'
+          }}
+        >
+          <Download size={16} />
           <span>Download Sample Excel</span>
         </button>
       </div>
