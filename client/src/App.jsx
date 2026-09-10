@@ -17,6 +17,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const studioRef = useRef(null);
+  const connectingStartedAtRef = useRef(0);
 
   // WhatsApp connection state
   const [waStatus, setWaStatus] = useState({
@@ -67,7 +68,16 @@ export default function App() {
       : io({ transports: ['polling', 'websocket'] });
 
     socket.on('wa_status', (data) => {
-      setWaStatus(data);
+      setWaStatus((prev) => {
+        const isRecentlyConnecting = prev.status === 'connecting' && (Date.now() - connectingStartedAtRef.current < 45000);
+        if (isRecentlyConnecting && data.status === 'disconnected' && !data.qrCode) {
+          return prev;
+        }
+        if (data.status === 'connected' || data.status === 'qrcode') {
+          connectingStartedAtRef.current = 0;
+        }
+        return data;
+      });
     });
 
     socket.on('campaign_update', (data) => {
@@ -86,14 +96,23 @@ export default function App() {
       }));
     });
 
-    // Active polling fallback for WhatsApp status every 2.5s (critical for cloud deployments like Render & Vercel)
+    // Active polling fallback for WhatsApp status every 2s (critical for cloud deployments like Render & Vercel)
     const pollInterval = setInterval(() => {
       fetch(`${baseUrl}/api/whatsapp/status`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
             setWaStatus((prev) => {
+              // Guard: don't let transient disconnected response crush active connecting state
+              const isRecentlyConnecting = prev.status === 'connecting' && (Date.now() - connectingStartedAtRef.current < 45000);
+              if (isRecentlyConnecting && data.status === 'disconnected' && !data.qrCode) {
+                return prev;
+              }
+
               if (prev.status !== data.status || prev.qrCode !== data.qrCode || prev.user?.phone !== data.user?.phone) {
+                if (data.status === 'connected' || data.status === 'qrcode') {
+                  connectingStartedAtRef.current = 0;
+                }
                 return {
                   status: data.status,
                   qrCode: data.qrCode,
@@ -105,7 +124,7 @@ export default function App() {
           }
         })
         .catch(() => {});
-    }, 2500);
+    }, 2000);
 
     // Fetch initial templates
     fetch(`${baseUrl}/api/templates`)
@@ -142,6 +161,7 @@ export default function App() {
   // WhatsApp Handlers
   const handleConnectWA = async () => {
     const baseUrl = getApiBaseUrl();
+    connectingStartedAtRef.current = Date.now();
 
     try {
       setWaStatus((prev) => ({ ...prev, status: 'connecting' }));
@@ -153,23 +173,23 @@ export default function App() {
       const data = await res.json();
       if (data.success) {
         if (data.qrCode || data.status === 'connected') {
-          // QR or connection arrived within the HTTP wait window
+          connectingStartedAtRef.current = 0;
           setWaStatus(data);
         } else {
-          // Backend is still generating QR — keep 'connecting' state
-          // The 2.5s polling interval will automatically pick up the QR
-          console.log('QR not ready yet from HTTP. Waiting for polling/Socket.IO to deliver it...');
+          console.log('QR not ready in initial HTTP window. Background polling will deliver it...');
         }
       }
     } catch (err) {
       console.error('Error connecting WhatsApp:', err);
       alert('Could not reach the backend server. On Render free tier, the server sleeps when inactive and takes ~30-45 seconds to wake up. Please wait a moment and try again.');
+      connectingStartedAtRef.current = 0;
       setWaStatus((prev) => ({ ...prev, status: 'disconnected' }));
     }
   };
 
   const handleLogoutWA = async () => {
     try {
+      connectingStartedAtRef.current = 0;
       const baseUrl = getApiBaseUrl();
       await fetch(`${baseUrl}/api/whatsapp/logout`, { method: 'POST' });
       setWaStatus({ status: 'disconnected', qrCode: null, user: null });

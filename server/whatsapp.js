@@ -21,7 +21,9 @@ class WhatsAppService {
     this.status = 'disconnected'; // 'disconnected' | 'connecting' | 'qrcode' | 'connected'
     this.user = null;
     this.io = null;
-    this.logger = pino({ level: 'silent' });
+    this.logger = pino({ level: 'warn' });
+    this.reconnectAttempts = 0;
+    this.lastDisconnectReason = null;
   }
 
   setSocketIO(io) {
@@ -42,7 +44,8 @@ class WhatsAppService {
     return {
       status: this.status,
       qrCode: this.qrCode,
-      user: this.user
+      user: this.user,
+      lastDisconnectReason: this.lastDisconnectReason
     };
   }
 
@@ -101,12 +104,11 @@ class WhatsAppService {
         version,
         auth: state,
         logger: this.logger,
-        printQRInTerminal: true,
-        browser: Browsers.ubuntu('Chrome'),
+        browser: Browsers.macOS('Chrome'),
         syncFullHistory: false,
         markOnlineOnConnect: true,
-        connectTimeoutMs: 120000,
-        defaultQueryTimeoutMs: 120000,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 25000,
         retryRequestDelayMs: 2000
       });
@@ -121,6 +123,8 @@ class WhatsAppService {
             try {
               this.qrCode = await QRCode.toDataURL(qr);
               this.status = 'qrcode';
+              this.reconnectAttempts = 0;
+              console.log('✅ QR Code generated successfully!');
               this.emitState();
             } catch (err) {
               console.error('Error rendering QR code:', err);
@@ -130,6 +134,7 @@ class WhatsAppService {
           if (connection === 'open') {
             this.status = 'connected';
             this.qrCode = null;
+            this.reconnectAttempts = 0;
             const rawId = this.sock.user?.id || '';
             const cleanPhone = rawId.split(':')[0] || rawId.split('@')[0];
             this.user = {
@@ -145,23 +150,41 @@ class WhatsAppService {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
 
-            console.log(`WhatsApp connection closed (statusCode: ${statusCode}).`);
-            this.status = 'disconnected';
-            this.qrCode = null;
-            this.emitState();
+            console.log(`WhatsApp connection closed (statusCode: ${statusCode}, reason: ${lastDisconnect?.error?.message || 'unknown'}).`);
+            this.lastDisconnectReason = {
+              statusCode,
+              message: lastDisconnect?.error?.message,
+              time: new Date().toISOString()
+            };
 
             if (isLoggedOut) {
               console.log('⚠️ Session logged out or expired. Clearing invalid session credentials...');
+              this.status = 'disconnected';
+              this.qrCode = null;
+              this.user = null;
+              this.reconnectAttempts = 0;
               try {
                 if (fs.existsSync(AUTH_FOLDER)) {
                   fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
                 }
               } catch (_) {}
-            } else if (fs.existsSync(path.join(AUTH_FOLDER, 'creds.json'))) {
-              console.log('🔄 Session credentials found. Re-establishing connection in 3s...');
-              setTimeout(() => {
-                this.init().catch((e) => console.warn('Reconnect retry failed:', e.message));
-              }, 3000);
+              this.emitState();
+            } else {
+              // Crucial Baileys fix: auto-reconnect on non-logout close reasons (e.g. 515 restartRequired)
+              this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
+              if (this.reconnectAttempts <= 5) {
+                console.log(`🔄 Re-establishing WhatsApp connection in 2s (attempt ${this.reconnectAttempts}/5, statusCode: ${statusCode})...`);
+                this.status = 'connecting';
+                this.emitState();
+                setTimeout(() => {
+                  this.init(false).catch((e) => console.warn('Reconnect retry failed:', e.message));
+                }, 2000);
+              } else {
+                console.warn('⚠️ Max reconnect attempts reached. Resetting status to disconnected.');
+                this.status = 'disconnected';
+                this.reconnectAttempts = 0;
+                this.emitState();
+              }
             }
           }
         } catch (eventErr) {
