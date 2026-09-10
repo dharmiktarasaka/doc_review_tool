@@ -53,7 +53,7 @@ export default function Features() {
               width: '48px',
               height: '48px',
               borderRadius: '12px',
-              background: 'rgba(255,255,255,0.05)',
+              background: '#e0f2fe',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -61,7 +61,7 @@ export default function Features() {
             }}>
               {f.icon}
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: '#ffffff' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>
               {f.title}
             </h3>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>

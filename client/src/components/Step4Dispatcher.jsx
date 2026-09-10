@@ -81,12 +81,12 @@ export default function Step4Dispatcher({
 
       {/* Anti-Ban Protection Banner */}
       <div className="security-banner">
-        <div style={{ background: 'rgba(6, 214, 160, 0.2)', padding: '12px', borderRadius: '12px', color: '#06d6a0' }}>
+        <div style={{ background: '#e0f2fe', padding: '12px', borderRadius: '12px', color: '#0284c7' }}>
           <ShieldCheck size={28} />
         </div>
         <div style={{ textAlign: 'left', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)' }}>
               WhatsApp Anti-Ban Security Engine Active
             </h4>
             <button 
@@ -109,14 +109,15 @@ export default function Step4Dispatcher({
       {/* Optional Customizable Delays Drawer */}
       {showSettings && (
         <div style={{
-          background: 'rgba(15, 23, 42, 0.7)',
+          background: '#ffffff',
           border: '1px solid var(--border-color)',
           borderRadius: '16px',
           padding: '20px',
           marginBottom: '24px',
-          textAlign: 'left'
+          textAlign: 'left',
+          boxShadow: '0 4px 16px rgba(2, 132, 199, 0.06)'
         }}>
-          <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#38bdf8', marginBottom: '16px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#0284c7', marginBottom: '16px' }}>
             Advanced Anti-Ban Parameters
           </h4>
 
@@ -177,7 +178,7 @@ export default function Step4Dispatcher({
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Campaign Progress</span>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-main)' }}>Campaign Progress</span>
             {stats.status === 'running' && (
               <span className="status-pill status-connected" style={{ padding: '2px 10px', fontSize: '11px' }}>
                 <span className="status-dot"></span>
@@ -201,7 +202,7 @@ export default function Step4Dispatcher({
               </span>
             )}
           </div>
-          <span style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: '700', color: '#06d6a0' }}>
+          <span style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: '700', color: '#0284c7' }}>
             {progressPercent}%
           </span>
         </div>
@@ -214,7 +215,7 @@ export default function Step4Dispatcher({
       {/* Stats Grid */}
       <div className="stats-grid">
         <div className="stat-box">
-          <div className="stat-number" style={{ color: '#ffffff' }}>{stats.total || contactsData?.contacts?.length || 0}</div>
+          <div className="stat-number" style={{ color: 'var(--text-main)' }}>{stats.total || contactsData?.contacts?.length || 0}</div>
           <div className="stat-label">Total Recipients</div>
         </div>
         <div className="stat-box">

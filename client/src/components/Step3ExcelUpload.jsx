@@ -114,11 +114,11 @@ export default function Step3ExcelUpload({
         gap: '12px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ background: 'rgba(0, 180, 216, 0.15)', padding: '10px', borderRadius: '10px', color: '#00b4d8' }}>
+          <div style={{ background: '#e0f2fe', padding: '10px', borderRadius: '10px', color: '#0284c7' }}>
             <FileSpreadsheet size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: '#ffffff' }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>
               Need the standard template?
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -155,16 +155,16 @@ export default function Step3ExcelUpload({
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              background: 'rgba(0, 180, 216, 0.1)',
+              background: '#e0f2fe',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#38bdf8'
+              color: '#0284c7'
             }}>
               <UploadCloud size={32} />
             </div>
 
-            <div style={{ fontSize: '17px', fontWeight: '700', color: '#ffffff' }}>
+            <div style={{ fontSize: '17px', fontWeight: '700', color: 'var(--text-main)' }}>
               {isUploading ? 'Analyzing Excel File...' : 'Click to Upload or Drag & Drop Excel File'}
             </div>
 
@@ -264,14 +264,14 @@ export default function Step3ExcelUpload({
 
           {/* Table */}
           <div style={{
-            background: 'rgba(11, 17, 32, 0.7)',
+            background: '#ffffff',
             border: '1px solid var(--border-color)',
             borderRadius: '14px',
             overflow: 'hidden'
           }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
-                <tr style={{ background: 'rgba(255, 255, 255, 0.04)', borderBottom: '1px solid var(--border-color)' }}>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                   <th style={{ padding: '12px 18px', color: 'var(--text-muted)' }}>#</th>
                   <th style={{ padding: '12px 18px', color: 'var(--text-muted)' }}>Patient Name</th>
                   <th style={{ padding: '12px 18px', color: 'var(--text-muted)' }}>WhatsApp Number</th>
@@ -280,14 +280,14 @@ export default function Step3ExcelUpload({
               </thead>
               <tbody>
                 {paginatedContacts.map((c, idx) => (
-                  <tr key={c.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                  <tr key={c.id || idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '12px 18px', color: 'var(--text-faint)' }}>
                       {(page - 1) * pageSize + idx + 1}
                     </td>
-                    <td style={{ padding: '12px 18px', fontWeight: '600', color: '#ffffff' }}>
+                    <td style={{ padding: '12px 18px', fontWeight: '600', color: 'var(--text-main)' }}>
                       {c.name}
                     </td>
-                    <td style={{ padding: '12px 18px', fontFamily: 'var(--font-mono)', color: '#38bdf8' }}>
+                    <td style={{ padding: '12px 18px', fontFamily: 'var(--font-mono)', color: '#0284c7' }}>
                       +{c.phone}
                     </td>
                     <td style={{ padding: '12px 18px' }}>

@@ -31,7 +31,7 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '12px' }}>
               <CheckCircle size={28} color="#25d366" />
-              <h3 style={{ fontSize: '20px', color: '#ffffff', margin: 0 }}>WhatsApp Linked Successfully!</h3>
+              <h3 style={{ fontSize: '20px', color: 'var(--text-main)', margin: 0 }}>WhatsApp Linked Successfully!</h3>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>
               Your device is paired and authorized to dispatch review invitations.
@@ -41,21 +41,22 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
               display: 'inline-flex',
               alignItems: 'center',
               gap: '16px',
-              background: 'rgba(0,0,0,0.3)',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
               padding: '12px 24px',
               borderRadius: '12px',
               marginBottom: '24px'
             }}>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Connected Number</div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#4ade80' }}>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#059669' }}>
                   +{waStatus.user?.phone || 'Verified Device'}
                 </div>
               </div>
-              <div style={{ height: '30px', width: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+              <div style={{ height: '30px', width: '1px', background: '#e2e8f0' }}></div>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Session State</div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#ffffff' }}>Active & Ready</div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>Active & Ready</div>
               </div>
             </div>
 
@@ -74,19 +75,21 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
           <div>
             {waStatus?.qrCode ? (
               <div style={{
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
                 borderRadius: '18px',
                 padding: '30px',
                 display: 'inline-block',
-                marginBottom: '28px'
+                marginBottom: '28px',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)'
               }}>
                 <div style={{
                   background: '#ffffff',
                   padding: '16px',
                   borderRadius: '14px',
+                  border: '1px solid #e2e8f0',
                   display: 'inline-block',
-                  boxShadow: '0 0 30px rgba(0, 180, 216, 0.2)'
+                  boxShadow: '0 0 30px rgba(2, 132, 199, 0.12)'
                 }}>
                   <img 
                     src={waStatus.qrCode} 
@@ -96,7 +99,7 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
                 </div>
 
                 <div style={{ marginTop: '20px', textAlign: 'left', maxWidth: '320px', margin: '20px auto 0' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#ffffff', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '8px' }}>
                     How to link:
                   </div>
                   <ol style={{ fontSize: '13px', color: 'var(--text-muted)', paddingLeft: '20px', lineHeight: '1.7' }}>
@@ -116,8 +119,8 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
               </div>
             ) : isConnecting ? (
               <div style={{ padding: '40px 20px', marginBottom: '20px' }}>
-                <div className="status-dot" style={{ width: '20px', height: '20px', margin: '0 auto 16px', background: '#00b4d8' }}></div>
-                <h3 style={{ fontSize: '18px', color: '#ffffff', marginBottom: '8px' }}>Generating WhatsApp QR Pairing Code...</h3>
+                <div className="status-dot" style={{ width: '20px', height: '20px', margin: '0 auto 16px', background: '#0284c7' }}></div>
+                <h3 style={{ fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>Generating WhatsApp QR Pairing Code...</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '440px', margin: '0 auto 16px', lineHeight: '1.6' }}>
                   Connecting to WhatsApp servers... If this takes longer than 15s on Render's free tier, click Retry below.
                 </p>
@@ -128,14 +131,15 @@ export default function Step1WhatsApp({ waStatus, onConnect, onLogout, onNext })
               </div>
             ) : (
               <div style={{
-                background: 'rgba(15, 23, 42, 0.6)',
+                background: '#ffffff',
                 border: '1px solid var(--border-color)',
                 borderRadius: '18px',
                 padding: '36px',
-                marginBottom: '28px'
+                marginBottom: '28px',
+                boxShadow: '0 4px 20px rgba(2, 132, 199, 0.05)'
               }}>
                 <div style={{ marginBottom: '24px' }}>
-                  <QrCode size={64} style={{ color: '#00b4d8', opacity: 0.8 }} />
+                  <QrCode size={64} style={{ color: '#0284c7', opacity: 0.9 }} />
                 </div>
                 <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>Ready to Pair WhatsApp</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '460px', margin: '0 auto 24px' }}>

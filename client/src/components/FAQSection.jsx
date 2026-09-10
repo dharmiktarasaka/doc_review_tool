@@ -30,7 +30,7 @@ export default function FAQSection() {
   return (
     <section id="faq" style={{ padding: '60px 32px', maxWidth: '900px', margin: '0 auto 60px' }}>
       <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-        <div style={{ display: 'inline-flex', padding: '10px', background: 'rgba(0, 180, 216, 0.1)', borderRadius: '50%', marginBottom: '12px', color: '#00b4d8' }}>
+        <div style={{ display: 'inline-flex', padding: '10px', background: '#e0f2fe', borderRadius: '50%', marginBottom: '12px', color: '#0284c7' }}>
           <HelpCircle size={24} />
         </div>
         <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px' }}>
@@ -52,10 +52,10 @@ export default function FAQSection() {
               onClick={() => setOpenIndex(isOpen ? -1 : idx)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ fontSize: '16px', fontWeight: '600', color: isOpen ? '#38bdf8' : '#ffffff' }}>
+                <h4 style={{ fontSize: '16px', fontWeight: '600', color: isOpen ? '#0284c7' : 'var(--text-main)' }}>
                   {f.q}
                 </h4>
-                {isOpen ? <ChevronUp size={18} color="#38bdf8" /> : <ChevronDown size={18} color="var(--text-muted)" />}
+                {isOpen ? <ChevronUp size={18} color="#0284c7" /> : <ChevronDown size={18} color="var(--text-muted)" />}
               </div>
               {isOpen && (
                 <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.65' }}>

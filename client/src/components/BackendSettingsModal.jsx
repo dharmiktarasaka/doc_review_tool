@@ -47,18 +47,18 @@ export default function BackendSettingsModal({ isOpen, onClose, onSaved }) {
         maxWidth: '520px',
         width: '100%',
         padding: '28px',
-        background: '#0e1726',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.18)'
       }}>
         
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: 'rgba(0, 180, 216, 0.2)', padding: '8px', borderRadius: '10px', color: '#00b4d8' }}>
+            <div style={{ background: '#e0f2fe', padding: '8px', borderRadius: '10px', color: '#0284c7' }}>
               <Server size={20} />
             </div>
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 }}>Backend Server Settings</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>Backend Server Settings</h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>Configure your Render backend endpoint</p>
             </div>
           </div>
@@ -89,9 +89,9 @@ export default function BackendSettingsModal({ isOpen, onClose, onSaved }) {
 
         {savedSuccess && (
           <div style={{
-            background: 'rgba(6, 214, 160, 0.15)',
-            border: '1px solid rgba(6, 214, 160, 0.3)',
-            color: '#06d6a0',
+            background: '#ecfdf5',
+            border: '1px solid #a7f3d0',
+            color: '#059669',
             padding: '10px',
             borderRadius: '8px',
             fontSize: '13px',

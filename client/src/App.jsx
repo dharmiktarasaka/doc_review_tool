@@ -10,7 +10,7 @@ import Features from './components/Features.jsx';
 import FAQSection from './components/FAQSection.jsx';
 import Footer from './components/Footer.jsx';
 import BackendSettingsModal from './components/BackendSettingsModal.jsx';
-import { getApiBaseUrl } from './config.js';
+import { getApiBaseUrl, isLocalEnvironment } from './config.js';
 import { Smartphone, Sparkles, FileSpreadsheet, Send, ShieldCheck, Check } from 'lucide-react';
 
 export default function App() {
@@ -143,10 +143,9 @@ export default function App() {
   const handleConnectWA = async () => {
     const baseUrl = getApiBaseUrl();
 
-    // Prompt user if on live Vercel but hasn't entered Render backend URL yet
-    if (!baseUrl && typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // Only prompt user if on live cloud deployment (e.g. Vercel) and no backend URL is set
+    if (!baseUrl && !isLocalEnvironment()) {
       setIsSettingsOpen(true);
-      alert('⚠️ Please set your Render Backend Server URL first! Click "Server URL" in the top navigation bar.');
       return;
     }
 
@@ -386,11 +385,11 @@ export default function App() {
 
       <section id="security" style={{ padding: '40px 32px', maxWidth: '1240px', margin: '0 auto' }}>
         <div className="security-banner" style={{ padding: '36px' }}>
-          <div style={{ background: 'rgba(6, 214, 160, 0.2)', padding: '16px', borderRadius: '16px', color: '#06d6a0' }}>
+          <div style={{ background: '#e0f2fe', padding: '16px', borderRadius: '16px', color: '#0284c7' }}>
             <ShieldCheck size={40} />
           </div>
           <div style={{ textAlign: 'left' }}>
-            <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>
               Why DocReview Pro Guarantees WhatsApp Anti-Ban Safety
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: '1.7', maxWidth: '900px' }}>

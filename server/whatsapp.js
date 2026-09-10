@@ -46,7 +46,6 @@ class WhatsAppService {
     };
   }
 
-  async init() {
   async init(forceNew = false) {
     if (this.status === 'connected' && this.sock && !forceNew) {
       return this.getStatus();

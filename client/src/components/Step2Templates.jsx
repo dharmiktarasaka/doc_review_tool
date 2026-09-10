@@ -225,7 +225,7 @@ export default function Step2Templates({
         {/* Right Column: Interactive WhatsApp Phone Mockup */}
         <div style={{ position: 'sticky', top: '100px' }}>
           <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)' }}>
               Live WhatsApp Recipient Preview
             </h3>
             <span style={{ fontSize: '12px', color: 'var(--text-faint)' }}>
@@ -243,7 +243,7 @@ export default function Step2Templates({
                 <div style={{ fontSize: '14.5px', fontWeight: '700', color: '#ffffff', lineHeight: 1.2 }}>
                   {clinicConfig.clinic_name || 'City Heart & Dental Care'}
                 </div>
-                <div style={{ fontSize: '11px', color: '#25d366' }}>
+                <div style={{ fontSize: '11px', color: '#86efac' }}>
                   official clinic desk • online
                 </div>
               </div>
@@ -251,8 +251,8 @@ export default function Step2Templates({
 
             {/* Chat Canvas */}
             <div style={{
-              background: '#0b141a',
-              backgroundImage: 'radial-gradient(rgba(255,255,255,0.03) 1px, transparent 0)',
+              background: '#efeae2',
+              backgroundImage: 'radial-gradient(rgba(0,0,0,0.05) 1px, transparent 0)',
               backgroundSize: '16px 16px',
               padding: '24px 16px',
               minHeight: '440px',
@@ -262,12 +262,13 @@ export default function Step2Templates({
             }}>
               <div style={{
                 alignSelf: 'center',
-                background: '#182229',
-                color: '#8696a0',
+                background: '#ffffff',
+                color: '#54656f',
                 padding: '4px 12px',
                 borderRadius: '6px',
                 fontSize: '11px',
-                marginBottom: '16px'
+                marginBottom: '16px',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06)'
               }}>
                 TODAY
               </div>
