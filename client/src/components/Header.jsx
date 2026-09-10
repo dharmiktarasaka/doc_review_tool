@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logoImg from '../assets/logo.png';
 import { 
   Activity, 
   Sparkles, 
@@ -10,7 +11,7 @@ import {
   QrCode, 
   LogOut, 
   Menu, 
-  X,
+  X, 
   Radio
 } from 'lucide-react';
 
@@ -44,8 +45,12 @@ export default function Header({ waStatus, onLogout, onScrollToStudio, onOpenSer
         {/* Brand Logo & Clinic Suite Badge */}
         <div className="nav-brand" onClick={onScrollToStudio} title="DocReview Pro - Automation Studio">
           <div className="brand-icon-wrapper">
-            <div className="brand-icon">
-              <Activity size={22} strokeWidth={2.5} />
+            <div className="brand-icon" style={{ padding: '2px', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.12)' }}>
+              <img 
+                src={logoImg} 
+                alt="DocReview Pro Logo" 
+                style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }} 
+              />
             </div>
             <div className="brand-glow-fx"></div>
           </div>
