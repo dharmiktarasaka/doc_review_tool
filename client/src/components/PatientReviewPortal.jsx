@@ -26,6 +26,7 @@ export default function PatientReviewPortal() {
   const [selectedStars, setSelectedStars] = useState(5);
   const [isPosting, setIsPosting] = useState(false);
   const [showCopiedNotice, setShowCopiedNotice] = useState(false);
+  const [justCopied, setJustCopied] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -99,6 +100,30 @@ export default function PatientReviewPortal() {
         navigator.clipboard.writeText(newText).catch(() => {});
       }
     } catch (_) {}
+  };
+
+  const handleCopyOnly = (e) => {
+    e?.preventDefault();
+    try {
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(reviewText);
+      } else {
+        const temp = document.createElement('textarea');
+        temp.value = reviewText;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+      }
+      setJustCopied(true);
+      setShowCopiedNotice(true);
+      setTimeout(() => {
+        setJustCopied(false);
+        setShowCopiedNotice(false);
+      }, 2500);
+    } catch (err) {
+      console.warn('Copy error:', err);
+    }
   };
 
   const handlePostReview = (e) => {
@@ -339,23 +364,32 @@ export default function PatientReviewPortal() {
             alignItems: 'center',
             gap: '12px',
             paddingTop: '16px',
-            borderTop: '1px solid #dadce0'
+            borderTop: '1px solid #dadce0',
+            flexWrap: 'wrap'
           }}>
             <button
               type="button"
-              onClick={handleShuffle}
+              onClick={handleCopyOnly}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#5f6368',
+                background: justCopied ? '#e6f4ea' : '#f1f3f4',
+                border: justCopied ? '1.5px solid #34a853' : '1px solid #dadce0',
+                color: justCopied ? '#137333' : '#3c4043',
                 fontSize: '14px',
                 fontWeight: '600',
-                padding: '10px 16px',
-                borderRadius: '6px',
-                cursor: 'pointer'
+                padding: '11px 18px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                flex: '1 1 140px'
               }}
+              title="Copy this 5-star review to clipboard"
             >
-              Change Suggestion
+              {justCopied ? <Check size={16} color="#137333" /> : <Copy size={16} color="#1a73e8" />}
+              <span>{justCopied ? 'Review Copied!' : 'Copy Review'}</span>
             </button>
 
             <button
@@ -367,15 +401,17 @@ export default function PatientReviewPortal() {
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '8px',
-                padding: '12px 28px',
+                padding: '12px 24px',
                 fontSize: '15px',
                 fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '8px',
                 boxShadow: '0 2px 6px rgba(26, 115, 232, 0.4)',
-                transition: 'background 0.2s'
+                transition: 'background 0.2s',
+                flex: '2 1 180px'
               }}
             >
               <span>{isPosting ? '✓ Review Copied! Opening Google...' : 'Post Review on Google'}</span>

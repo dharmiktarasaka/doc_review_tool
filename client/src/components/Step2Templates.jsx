@@ -74,7 +74,14 @@ export default function Step2Templates({
   // Helper to format simulated live message for preview
   const formatPreview = (rawText) => {
     if (!rawText) return '';
-    const linkToShow = clinicConfig.use_smart_bridge !== false ? getSmartBridgeUrl() : (clinicConfig.review_link || 'https://g.page/r/your-clinic-review');
+    let linkToShow;
+    if (clinicConfig.use_smart_bridge !== false && typeof window !== 'undefined') {
+      const origin = window.location.origin;
+      const ws = encodeURIComponent(workspaceId || 'default');
+      linkToShow = `${origin}/?review=1&ws=${ws}`;
+    } else {
+      linkToShow = clinicConfig.review_link || 'https://g.page/r/your-clinic-review';
+    }
     return rawText
       .replace(/\{\{patient_name\}\}/gi, 'Rahul Sharma')
       .replace(/\{\{doctor_name\}\}/gi, clinicConfig.doctor_name || 'Dr. Aryan Mehta')
@@ -104,7 +111,7 @@ export default function Step2Templates({
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '36px 32px' }}>
+    <div className="glass-panel step-panel">
       
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 32px' }}>
@@ -172,7 +179,7 @@ export default function Step2Templates({
         </div>
 
         {/* Inputs Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '22px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '20px' }}>
           {/* Clinic Name */}
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>
@@ -417,7 +424,7 @@ export default function Step2Templates({
 
       {/* SUB-TAB 1: WHATSAPP TEMPLATES ROTATION */}
       {activeSubTab === 'whatsapp' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 0.95fr', gap: '28px', alignItems: 'start' }}>
+        <div className="templates-layout-grid">
           
           {/* Left Column: Template Cards */}
           <div>
@@ -553,7 +560,7 @@ export default function Step2Templates({
           </div>
 
           {/* Right Column: Interactive WhatsApp Phone Mockup */}
-          <div style={{ position: 'sticky', top: '100px' }}>
+          <div className="preview-sticky-col">
             <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
                 Live WhatsApp Recipient Preview
@@ -666,11 +673,7 @@ export default function Step2Templates({
           </div>
 
           {/* Grid of 10 Reviews */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))',
-            gap: '20px'
-          }}>
+          <div className="google-reviews-grid">
             {googleReviews.map((rev) => {
               const isEditingThis = editingGoogleReviewId === rev.id;
               const previewText = formatGoogleReview(rev.text, {

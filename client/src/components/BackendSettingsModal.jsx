@@ -43,14 +43,7 @@ export default function BackendSettingsModal({ isOpen, onClose, onSaved }) {
       zIndex: 9999,
       padding: '20px'
     }}>
-      <div className="glass-panel" style={{
-        maxWidth: '520px',
-        width: '100%',
-        padding: '28px',
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.18)'
-      }}>
+      <div className="glass-panel modal-responsive-card">
         
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

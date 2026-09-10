@@ -86,7 +86,7 @@ export default function Step3ExcelUpload({
   const paginatedContacts = filteredContacts.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <div className="glass-panel" style={{ padding: '36px 32px' }}>
+    <div className="glass-panel step-panel">
       
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 32px' }}>
@@ -300,12 +300,7 @@ export default function Step3ExcelUpload({
           </div>
 
           {/* Table */}
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid var(--border-color)',
-            borderRadius: '14px',
-            overflow: 'hidden'
-          }}>
+          <div className="table-responsive-container">
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>

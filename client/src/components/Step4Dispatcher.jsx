@@ -64,7 +64,7 @@ export default function Step4Dispatcher({
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '36px 32px' }}>
+    <div className="glass-panel step-panel">
       
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 32px' }}>

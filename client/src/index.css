@@ -884,6 +884,9 @@ textarea.input-field {
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .chat-preview-header {
@@ -907,6 +910,7 @@ textarea.input-field {
   font-size: 18px;
   font-weight: 700;
   color: #ffffff;
+  flex-shrink: 0;
 }
 
 .chat-bubble {
@@ -917,6 +921,10 @@ textarea.input-field {
   font-size: 13.5px;
   line-height: 1.55;
   white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  box-sizing: border-box;
   position: relative;
   box-shadow: 0 1px 2px rgba(11, 20, 26, 0.13);
   text-align: left;
@@ -1156,29 +1164,315 @@ textarea.input-field {
   margin-top: 4px;
 }
 
-/* Responsiveness */
+/* Wizard & Step Panel Helpers */
+.step-panel {
+  padding: 36px 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.templates-layout-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  gap: 28px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.templates-layout-grid > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.preview-sticky-col {
+  position: sticky;
+  top: 90px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.google-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 18px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.table-responsive-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.table-responsive-container table {
+  min-width: 580px;
+  width: 100%;
+}
+
+.hero-action-group {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.modal-responsive-card {
+  width: 100%;
+  max-width: 540px;
+  padding: 30px 26px;
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   COMPREHENSIVE RESPONSIVENESS (MOBILE, TABLET, DESKTOP)
+   ========================================= */
+
+/* Tablets & Small Laptops (<= 1180px) */
 @media (max-width: 1180px) {
-  .nav-center { display: none; }
-  .mobile-menu-toggle { display: flex; }
+  .nav-center { 
+    display: none; 
+  }
+  .mobile-menu-toggle { 
+    display: flex; 
+  }
+  .templates-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .preview-sticky-col {
+    position: static;
+    top: auto;
+  }
 }
 
+/* Medium Tablets & Phablets (<= 900px) */
 @media (max-width: 900px) {
-  .hero-title { font-size: 34px; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero {
+    padding: 48px 20px 32px;
+  }
+  .hero-title { 
+    font-size: 36px; 
+    line-height: 1.2;
+    letter-spacing: -0.6px;
+  }
+  .hero-subtitle {
+    font-size: 16px;
+    margin-bottom: 28px;
+  }
+  .stats-grid { 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 14px;
+  }
+  .steps-bar {
+    justify-content: flex-start;
+    padding: 10px 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .steps-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .step-nav-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
 }
 
+/* Small Tablets & Mobile Devices (<= 768px) */
 @media (max-width: 768px) {
-  .navbar-container { padding: 10px 16px; }
-  .brand-tagline { display: none; }
-  .brand-badge { display: none; }
-  .nav-btn-label { display: none; }
-  .nav-btn-cta { padding: 7px 13px; font-size: 12.5px; }
+  .navbar-container { 
+    padding: 10px 14px; 
+    gap: 10px;
+  }
+  .brand-title {
+    font-size: 18px;
+  }
+  .brand-tagline { 
+    display: none; 
+  }
+  .brand-badge { 
+    display: none; 
+  }
+  .nav-btn-label { 
+    display: none; 
+  }
+  .nav-btn-cta { 
+    padding: 7px 12px; 
+    font-size: 12px; 
+  }
+
+  .step-panel {
+    padding: 22px 16px !important;
+    border-radius: var(--radius-md);
+  }
+
+  .wizard-container {
+    width: 100%;
+    padding: 0 10px;
+    margin-bottom: 40px;
+  }
+
+  .hero {
+    padding: 36px 16px 24px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+    margin-bottom: 14px;
+  }
+
+  .hero-highlights {
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .highlight-item {
+    font-size: 12.5px;
+  }
+
+  .google-reviews-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .terminal-body {
+    height: 220px;
+    padding: 12px;
+    font-size: 12px;
+  }
+
+  .security-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 }
 
+/* Compact Smartphones (<= 480px) */
 @media (max-width: 480px) {
-  .nav-actions { gap: 6px; }
-  .nav-btn-glass { padding: 6px 9px; }
-  .status-pill { padding: 5px 9px; font-size: 11.5px; }
+  .nav-actions { 
+    gap: 6px; 
+  }
+  .nav-btn-glass { 
+    padding: 6px 8px; 
+    border-radius: 8px;
+  }
+  .nav-btn-cta { 
+    display: none; 
+  }
+  .status-pill { 
+    padding: 5px 8px; 
+    font-size: 11px; 
+    gap: 5px;
+  }
+
+  .step-panel {
+    padding: 16px 12px !important;
+  }
+
+  .step-arrow {
+    display: none;
+  }
+
+  .steps-bar {
+    padding: 6px 8px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+
+  .step-nav-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .step-number {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .hero-title {
+    font-size: 24px;
+    letter-spacing: -0.4px;
+  }
+
+  .hero-subtitle {
+    font-size: 14px;
+  }
+
+  .hero-action-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .hero-action-group .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .stat-box {
+    padding: 12px 8px;
+  }
+
+  .stat-number {
+    font-size: 20px;
+  }
+
+  .stat-label {
+    font-size: 10.5px;
+  }
+
+  .btn {
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .chat-bubble {
+    padding: 10px 12px;
+    font-size: 12.5px;
+  }
+
+  .chat-preview-header {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .chat-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+
+  .modal-responsive-card {
+    padding: 20px 16px;
+    border-radius: 18px;
+    max-height: 94vh;
+  }
 }
 
 

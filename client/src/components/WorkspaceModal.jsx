@@ -74,18 +74,8 @@ export default function WorkspaceModal({ isOpen, onClose, onWorkspaceChanged }) 
       padding: '20px'
     }}>
       <div 
-        className="glass-panel" 
+        className="glass-panel modal-responsive-card" 
         onClick={(e) => e.stopPropagation()} 
-        style={{
-          width: '100%',
-          maxWidth: '540px',
-          padding: '32px',
-          background: '#ffffff',
-          borderRadius: '24px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          border: '1px solid #e2e8f0',
-          position: 'relative'
-        }}
       >
         {/* Close Button */}
         <button 

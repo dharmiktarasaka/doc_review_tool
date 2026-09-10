@@ -18,7 +18,7 @@ export default function Hero({ onStart }) {
         Connect your clinic's WhatsApp, pick doctor-tailored SEO templates, upload your patient Excel sheet, and let our intelligent Anti-Ban engine securely deliver personalized review requests.
       </p>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+      <div className="hero-action-group">
         <button className="btn btn-primary" style={{ padding: '14px 28px', fontSize: '16px' }} onClick={onStart}>
           <span>Launch 4-Step Review Generator</span>
           <ArrowRight size={18} />
