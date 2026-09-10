@@ -11,7 +11,8 @@ import {
   Stethoscope, 
   ShieldCheck, 
   ArrowRight,
-  Heart
+  Camera,
+  X
 } from 'lucide-react';
 import { DEFAULT_GOOGLE_REVIEWS, formatGoogleReview } from '../data/defaultReviews.js';
 
@@ -21,27 +22,30 @@ export default function PatientReviewPortal() {
   const [googleReviewLink, setGoogleReviewLink] = useState('https://search.google.com/local/writereview');
   const [reviewList, setReviewList] = useState(DEFAULT_GOOGLE_REVIEWS);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [customReviewText, setCustomReviewText] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [selectedStars, setSelectedStars] = useState(5);
+  const [isPosting, setIsPosting] = useState(false);
+  const [showCopiedNotice, setShowCopiedNotice] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
 
-    // Read clinic details from query or fallback
     const qClinic = params.get('clinic');
     const qDoctor = params.get('doc');
     const qTarget = params.get('target');
     const qWorkspace = params.get('ws');
     const qReviewIndex = params.get('r');
 
-    if (qClinic) setClinicName(decodeURIComponent(qClinic));
-    if (qDoctor) setDoctorName(decodeURIComponent(qDoctor));
-    if (qTarget) setGoogleReviewLink(decodeURIComponent(qTarget));
+    const effectiveClinic = qClinic ? decodeURIComponent(qClinic) : 'CareWell Multispecialty Clinic';
+    const effectiveDoctor = qDoctor ? decodeURIComponent(qDoctor) : 'Dr. Aryan Mehta, MD';
+    const effectiveTarget = qTarget ? decodeURIComponent(qTarget) : 'https://search.google.com/local/writereview';
 
-    // Try reading workspace saved reviews if available
+    setClinicName(effectiveClinic);
+    setDoctorName(effectiveDoctor);
+    setGoogleReviewLink(effectiveTarget);
+
+    // Try reading workspace saved reviews from localStorage
     let loadedReviews = DEFAULT_GOOGLE_REVIEWS;
     if (qWorkspace) {
       try {
@@ -56,65 +60,59 @@ export default function PatientReviewPortal() {
     }
     setReviewList(loadedReviews);
 
-    // Pick index: from query param or randomly from available reviews
-    let initialIndex = 0;
+    // Pick random review or specified index
+    let chosenIndex = 0;
     if (qReviewIndex !== null && !isNaN(parseInt(qReviewIndex, 10))) {
-      initialIndex = Math.abs(parseInt(qReviewIndex, 10)) % loadedReviews.length;
+      chosenIndex = Math.abs(parseInt(qReviewIndex, 10)) % loadedReviews.length;
     } else {
-      initialIndex = Math.floor(Math.random() * loadedReviews.length);
+      chosenIndex = Math.floor(Math.random() * loadedReviews.length);
     }
-    setCurrentIndex(initialIndex);
+    setCurrentIndex(chosenIndex);
 
-    // Auto-copy attempt on load if permissions allow
-    const activeText = formatGoogleReview(loadedReviews[initialIndex]?.text || '', {
-      clinic_name: qClinic ? decodeURIComponent(qClinic) : 'CareWell Multispecialty Clinic',
-      doctor_name: qDoctor ? decodeURIComponent(qDoctor) : 'Dr. Aryan Mehta, MD'
+    const initialText = formatGoogleReview(loadedReviews[chosenIndex]?.text || '', {
+      clinic_name: effectiveClinic,
+      doctor_name: effectiveDoctor
     });
+    setReviewText(initialText);
 
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(activeText)
-        .then(() => setCopied(true))
-        .catch(() => {});
-    }
+    // Pre-copy text into clipboard immediately on arrival
+    try {
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(initialText).catch(() => {});
+      }
+    } catch (_) {}
   }, []);
-
-  const activeReviewTemplate = reviewList[currentIndex] || DEFAULT_GOOGLE_REVIEWS[0];
-  const formattedReview = customReviewText || formatGoogleReview(activeReviewTemplate.text, {
-    clinic_name: clinicName,
-    doctor_name: doctorName
-  });
 
   const handleShuffle = () => {
     const nextIndex = (currentIndex + 1) % reviewList.length;
     setCurrentIndex(nextIndex);
-    setCustomReviewText('');
-    setIsEditing(false);
-    setCopied(false);
 
     const newText = formatGoogleReview(reviewList[nextIndex].text, {
       clinic_name: clinicName,
       doctor_name: doctorName
     });
+    setReviewText(newText);
 
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(newText)
-        .then(() => setCopied(true))
-        .catch(() => {});
-    }
-  };
-
-  const handleCopyAndSubmit = (e) => {
-    e?.preventDefault();
-    setCopied(true);
-    setIsRedirecting(true);
-
-    // Robust clipboard copy with textarea fallback
+    // Update clipboard with new shuffled review
     try {
       if (navigator?.clipboard?.writeText) {
-        navigator.clipboard.writeText(formattedReview);
+        navigator.clipboard.writeText(newText).catch(() => {});
+      }
+    } catch (_) {}
+  };
+
+  const handlePostReview = (e) => {
+    e?.preventDefault();
+    setIsPosting(true);
+    setShowCopiedNotice(true);
+
+    // Robust copy to clipboard
+    try {
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(reviewText);
       } else {
         const temp = document.createElement('textarea');
-        temp.value = formattedReview;
+        temp.value = reviewText;
         document.body.appendChild(temp);
         temp.select();
         document.execCommand('copy');
@@ -122,265 +120,300 @@ export default function PatientReviewPortal() {
       }
     } catch (_) {}
 
-    // Redirect to Google Reviews after brief feedback
+    // Redirect to the actual Google Review page
     setTimeout(() => {
       let target = googleReviewLink || 'https://search.google.com/local/writereview';
       if (!target.startsWith('http://') && !target.startsWith('https://')) {
         target = 'https://' + target;
       }
       window.location.href = target;
-    }, 600);
+    }, 800);
   };
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 35%, #ffffff 100%)',
+      background: '#f8f9fa',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px 16px',
-      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-      color: '#0f172a'
+      padding: '20px 14px',
+      fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+      color: '#202124'
     }}>
+      
+      {/* Official Google Review Card Container */}
       <div style={{
         width: '100%',
-        maxWidth: '520px',
+        maxWidth: '560px',
         background: '#ffffff',
-        borderRadius: '28px',
-        boxShadow: '0 20px 60px -15px rgba(2, 132, 199, 0.18), 0 0 1px 1px rgba(2, 132, 199, 0.08)',
-        border: '1px solid #bae6fd',
-        padding: '36px 28px',
-        textAlign: 'center',
-        position: 'relative',
+        borderRadius: '16px',
+        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05)',
+        border: '1px solid #dadce0',
         overflow: 'hidden'
       }}>
         
-        {/* Top Decorative Header Accent */}
+        {/* Google Header */}
         <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '6px',
-          background: 'linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #10b981 100%)'
-        }} />
-
-        {/* Clinic & Doctor Identity Card */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'rgba(2, 132, 199, 0.08)',
-          border: '1px solid rgba(2, 132, 199, 0.2)',
-          padding: '6px 14px',
-          borderRadius: '30px',
-          marginBottom: '16px'
-        }}>
-          <ShieldCheck size={16} color="#0284c7" />
-          <span style={{ fontSize: '13px', fontWeight: '700', color: '#0369a1' }}>
-            Verified Healthcare Consultation
-          </span>
-        </div>
-
-        <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 6px 0', color: '#0f172a', letterSpacing: '-0.02em' }}>
-          {clinicName}
-        </h1>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '14.5px', color: '#475569', fontWeight: '600', marginBottom: '22px' }}>
-          <Stethoscope size={16} color="#0284c7" />
-          <span>{doctorName}</span>
-        </div>
-
-        {/* 5-Star Rating Badge */}
-        <div style={{
-          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-          border: '1.5px solid #fde68a',
-          borderRadius: '20px',
-          padding: '16px 20px',
-          marginBottom: '22px',
+          padding: '18px 24px',
+          borderBottom: '1px solid #dadce0',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          gap: '8px'
+          justifyContent: 'space-between',
+          background: '#ffffff'
         }}>
-          <span style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#b45309' }}>
-            Your 5-Star Rating Ready
-          </span>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star 
-                key={s} 
-                size={30} 
-                color="#f59e0b" 
-                fill="#f59e0b" 
-                style={{ filter: 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))' }} 
-              />
-            ))}
-          </div>
-          <span style={{ fontSize: '13px', fontWeight: '600', color: '#78350f' }}>
-            Excellent Experience • 5.0 out of 5.0
-          </span>
-        </div>
-
-        {/* Pre-written 5-Star Review Box */}
-        <div style={{
-          background: '#f8fafc',
-          border: '1.5px solid #e2e8f0',
-          borderRadius: '18px',
-          padding: '20px',
-          marginBottom: '20px',
-          textAlign: 'left',
-          position: 'relative'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em' }}>
-              Suggested Review Template ({currentIndex + 1}/10)
-            </span>
-            <button
-              onClick={handleShuffle}
-              type="button"
-              style={{
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '4px 10px',
-                fontSize: '11.5px',
-                fontWeight: '600',
-                color: '#0284c7',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                cursor: 'pointer'
-              }}
-              title="Shuffle to another pre-written review"
-            >
-              <Shuffle size={12} />
-              <span>Shuffle Review</span>
-            </button>
-          </div>
-
-          {isEditing ? (
-            <textarea
-              value={formattedReview}
-              onChange={(e) => setCustomReviewText(e.target.value)}
-              rows={4}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '10px',
-                border: '1.5px solid #0284c7',
-                fontSize: '14px',
-                lineHeight: '1.5',
-                color: '#0f172a',
-                fontFamily: 'inherit',
-                boxSizing: 'border-box'
-              }}
-            />
-          ) : (
-            <div style={{
-              fontSize: '14.5px',
-              lineHeight: '1.6',
-              color: '#1e293b',
-              fontStyle: 'italic',
-              fontWeight: '500'
-            }}>
-              "{formattedReview}"
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
-            <button
-              type="button"
-              onClick={() => setIsEditing(!isEditing)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#64748b',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                textDecoration: 'underline'
-              }}
-            >
-              {isEditing ? 'Done Editing' : 'Edit Text (Optional)'}
-            </button>
-
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '11.5px',
-              fontWeight: '600',
-              color: copied ? '#059669' : '#64748b'
-            }}>
-              {copied ? <Check size={13} color="#059669" /> : <Copy size={13} />}
-              {copied ? 'Auto-Copied to Clipboard!' : 'Will Copy on Tap'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Google Colorful "G" Logo */}
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.93 6.72-4.93z"/>
+            </svg>
+            <span style={{ fontSize: '18px', fontWeight: '600', color: '#3c4043' }}>
+              Google Reviews
             </span>
           </div>
-        </div>
 
-        {/* 1-Tap Google Review Action Button */}
-        <button
-          onClick={handleCopyAndSubmit}
-          disabled={isRedirecting}
-          style={{
-            width: '100%',
-            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '16px',
-            padding: '16px 24px',
-            fontSize: '16px',
-            fontWeight: '700',
-            cursor: 'pointer',
+          <span style={{
+            background: '#e6f4ea',
+            color: '#137333',
+            fontSize: '11.5px',
+            fontWeight: '600',
+            padding: '3px 10px',
+            borderRadius: '20px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            boxShadow: '0 10px 25px -4px rgba(2, 132, 199, 0.4), 0 4px 6px -2px rgba(2, 132, 199, 0.2)',
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-          }}
-        >
-          <span>{isRedirecting ? 'Opening Google Review...' : '⭐ Submit 5-Star Review on Google'}</span>
-          <ExternalLink size={18} />
-        </button>
-
-        {/* 3-Step Simple Guidance */}
-        <div style={{
-          marginTop: '22px',
-          padding: '16px',
-          background: '#f8fafc',
-          borderRadius: '14px',
-          border: '1px solid #f1f5f9',
-          textAlign: 'left'
-        }}>
-          <div style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
-            Quick 3-Second Process:
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#334155' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
-              <span>Review text is <b>auto-copied to your clipboard</b></span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
-              <span>Google Review opens with 5 stars selected</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
-              <span><b>Paste & tap Post</b> — thank you for your support!</span>
-            </div>
-          </div>
+            gap: '4px'
+          }}>
+            <ShieldCheck size={13} /> Verified Clinic
+          </span>
         </div>
 
-        {/* Footer note */}
-        <div style={{ marginTop: '16px', fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-          <span>Powered by RevU GEN Healthcare Suite</span>
-          <Heart size={12} color="#ef4444" fill="#ef4444" />
+        {/* Business & Doctor Identity Section */}
+        <div style={{ padding: '24px 24px 16px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1a73e8 0%, #174ea6 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: '700',
+              fontSize: '20px',
+              boxShadow: '0 2px 6px rgba(26, 115, 232, 0.3)'
+            }}>
+              {(clinicName || 'C')[0]?.toUpperCase()}
+            </div>
+            <div>
+              <h2 style={{ fontSize: '19px', fontWeight: '700', margin: 0, color: '#202124', lineHeight: 1.3 }}>
+                {clinicName}
+              </h2>
+              <div style={{ fontSize: '13.5px', color: '#5f6368', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Stethoscope size={14} color="#1a73e8" />
+                <span>{doctorName}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '12px', color: '#70757a', marginBottom: '18px' }}>
+            Posting publicly across Google Maps & Search • 5-Star Rating Pre-Filled
+          </div>
+
+          {/* 5 Stars Rating Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 16px',
+            background: '#fff8e1',
+            borderRadius: '12px',
+            border: '1px solid #ffe082',
+            marginBottom: '18px'
+          }}>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={28}
+                  color="#fbbc04"
+                  fill={star <= selectedStars ? '#fbbc04' : 'none'}
+                  onClick={() => setSelectedStars(star)}
+                  style={{ cursor: 'pointer', filter: 'drop-shadow(0 1px 2px rgba(251, 188, 4, 0.4))' }}
+                />
+              ))}
+            </div>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#e37400', marginLeft: '6px' }}>
+              5.0 / 5.0 (Excellent)
+            </span>
+          </div>
+
+          {/* The Review Input Placeholder / Textarea (Auto-Filled with Random 1-of-10 Review!) */}
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '6px'
+            }}>
+              <label style={{ fontSize: '12px', fontWeight: '600', color: '#5f6368' }}>
+                Your Review (Auto-Drafted from Suggestion #{currentIndex + 1})
+              </label>
+              <button
+                type="button"
+                onClick={handleShuffle}
+                style={{
+                  background: '#f1f3f4',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '11.5px',
+                  fontWeight: '600',
+                  color: '#1a73e8',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Shuffle to another pre-written review"
+              >
+                <Shuffle size={12} />
+                <span>Shuffle Review</span>
+              </button>
+            </div>
+
+            <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              placeholder="Share details of your own experience at this place"
+              rows={5}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '8px',
+                border: '1.5px solid #1a73e8',
+                fontSize: '14.5px',
+                lineHeight: '1.6',
+                color: '#202124',
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+                background: '#ffffff',
+                boxShadow: '0 0 0 2px rgba(26, 115, 232, 0.15)'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#70757a', marginBottom: '22px' }}>
+            <span>✓ Review text ready to publish</span>
+            <span>{reviewText.length} characters</span>
+          </div>
+
+          {/* Quick Notice */}
+          <div style={{
+            background: '#e8f0fe',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            marginBottom: '20px',
+            fontSize: '12.5px',
+            color: '#174ea6',
+            lineHeight: '1.5',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '16px', marginTop: '-1px' }}>💡</span>
+            <div>
+              <strong>1-Tap Post:</strong> Clicking <strong>"Post Review"</strong> copies your 5-star review and opens Google Reviews. Simply tap <strong>Paste</strong> and your review is published!
+            </div>
+          </div>
+
+          {/* Google Actions Bar (Post Button) */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '12px',
+            paddingTop: '16px',
+            borderTop: '1px solid #dadce0'
+          }}>
+            <button
+              type="button"
+              onClick={handleShuffle}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#5f6368',
+                fontSize: '14px',
+                fontWeight: '600',
+                padding: '10px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Change Suggestion
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePostReview}
+              disabled={isPosting}
+              style={{
+                background: isPosting ? '#34a853' : '#1a73e8',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '12px 28px',
+                fontSize: '15px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 6px rgba(26, 115, 232, 0.4)',
+                transition: 'background 0.2s'
+              }}
+            >
+              <span>{isPosting ? '✓ Review Copied! Opening Google...' : 'Post Review on Google'}</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+
         </div>
 
       </div>
+
+      {/* Floating Copied Notice Modal / Overlay */}
+      {showCopiedNotice && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          background: '#202124',
+          color: '#ffffff',
+          padding: '14px 24px',
+          borderRadius: '12px',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '14px',
+          fontWeight: '600',
+          zIndex: 9999
+        }}>
+          <CheckCircle2 size={20} color="#34a853" />
+          <span>Review text copied! Opening Google Reviews now...</span>
+        </div>
+      )}
+
+      {/* Small subtle footer */}
+      <div style={{ marginTop: '16px', fontSize: '11.5px', color: '#70757a' }}>
+        Google Business Profile Review Integration • {clinicName}
+      </div>
+
     </div>
   );
 }
