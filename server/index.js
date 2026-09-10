@@ -7,8 +7,8 @@ import * as XLSX from 'xlsx';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { waService } from './whatsapp.js';
-import { campaignQueue } from './queue.js';
+import { waManager } from './whatsapp.js';
+import { campaignManager } from './queue.js';
 import { DEFAULT_DOCTOR_TEMPLATES } from './templates.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,9 +37,9 @@ const io = new Server(server, {
   pingInterval: 25000
 });
 
-// Pass socket.io to WhatsApp service and queue
-waService.setSocketIO(io);
-campaignQueue.setSocketIO(io);
+// Attach Socket.IO to managers
+waManager.setSocketIO(io);
+campaignManager.setSocketIO(io);
 
 app.use(cors({
   origin: '*',
@@ -47,17 +47,55 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Session Extraction Middleware: Ensures every request is scoped to a secure Workspace/Session ID
+app.use((req, res, next) => {
+  const rawSession = 
+    req.headers['x-session-id'] || 
+    req.headers['x-workspace-id'] || 
+    req.query.sessionId || 
+    req.query.workspaceId || 
+    req.body?.sessionId || 
+    req.body?.workspaceId;
+
+  req.sessionId = String(rawSession || 'default')
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .substring(0, 64) || 'default';
+
+  next();
+});
+
 // Set up Multer for memory upload
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
-// Socket connection listener
+// Socket connection listener: clients join their isolated session room
 io.on('connection', (socket) => {
-  // Send current states immediately
-  socket.emit('wa_status', waService.getStatus());
-  socket.emit('campaign_update', campaignQueue.getStatus());
+  const rawSession = 
+    socket.handshake.auth?.sessionId || 
+    socket.handshake.auth?.workspaceId || 
+    socket.handshake.query?.sessionId || 
+    socket.handshake.query?.workspaceId;
+
+  const safeSessionId = String(rawSession || 'default')
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .substring(0, 64) || 'default';
+
+  const roomName = `session_${safeSessionId}`;
+  socket.join(roomName);
+  console.log(`🔌 [Socket.IO] Client connected: socket=${socket.id}, joined room=${roomName}`);
+
+  const wa = waManager.getSession(safeSessionId);
+  const queue = campaignManager.getQueue(safeSessionId);
+
+  // Send initial states strictly to this connecting socket
+  socket.emit('wa_status', wa.getStatus());
+  socket.emit('campaign_update', queue.getStatus());
+
+  socket.on('disconnect', () => {
+    // Left room automatically
+  });
 });
 
 // --- API ROUTES ---
@@ -67,32 +105,32 @@ app.get('/api/templates', (req, res) => {
   res.json({ success: true, templates: DEFAULT_DOCTOR_TEMPLATES });
 });
 
-// 2. WhatsApp Status
+// 2. WhatsApp Status (Session Scoped)
 app.get('/api/whatsapp/status', (req, res) => {
-  res.json({ success: true, ...waService.getStatus() });
+  const wa = waManager.getSession(req.sessionId);
+  res.json({ success: true, ...wa.getStatus() });
 });
 
-// 3. Initiate WhatsApp Connection (waits up to 10s for QR code so HTTP returns QR directly)
+// 3. Initiate WhatsApp Connection (Session Scoped)
 app.post('/api/whatsapp/connect', async (req, res) => {
   try {
     const force = req.body?.force === true;
-    let currentStatus = waService.getStatus();
+    const wa = waManager.getSession(req.sessionId);
+    let currentStatus = wa.getStatus();
+
     if (currentStatus.status === 'connected' && !force) {
       return res.json({ success: true, ...currentStatus });
     }
 
-    // Trigger WhatsApp connection with optional force wipe
-    console.log(`[Connect] Starting WhatsApp init (force=${force})...`);
-    waService.init(force).catch((err) => console.error('Background init error:', err));
+    console.log(`[Connect][${req.sessionId}] Starting WhatsApp init (force=${force})...`);
+    wa.init(force).catch((err) => console.error(`[Connect][${req.sessionId}] Background init error:`, err));
 
-    // Wait up to 30 seconds for QR code or connected status
-    // Render free tier can take 15-25s for Baileys to connect and generate QR
     let waited = 0;
     const maxWait = 30000;
     while (waited < maxWait) {
-      currentStatus = waService.getStatus();
+      currentStatus = wa.getStatus();
       if (currentStatus.qrCode || currentStatus.status === 'connected') {
-        console.log(`[Connect] Got result after ${waited}ms: status=${currentStatus.status}, hasQR=${!!currentStatus.qrCode}`);
+        console.log(`[Connect][${req.sessionId}] Got result after ${waited}ms: status=${currentStatus.status}, hasQR=${!!currentStatus.qrCode}`);
         break;
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -100,7 +138,7 @@ app.post('/api/whatsapp/connect', async (req, res) => {
     }
 
     if (!currentStatus.qrCode && currentStatus.status !== 'connected') {
-      console.log(`[Connect] Timeout after ${maxWait}ms. Status: ${currentStatus.status}. QR may arrive via Socket.IO.`);
+      console.log(`[Connect][${req.sessionId}] Timeout after ${maxWait}ms. Status: ${currentStatus.status}. QR may arrive via Socket.IO.`);
     }
 
     res.json({ success: true, ...currentStatus });
@@ -109,10 +147,11 @@ app.post('/api/whatsapp/connect', async (req, res) => {
   }
 });
 
-// 4. WhatsApp Logout / Clear Auth
+// 4. WhatsApp Logout / Clear Auth (Session Scoped)
 app.post('/api/whatsapp/logout', async (req, res) => {
   try {
-    await waService.logout();
+    const wa = waManager.getSession(req.sessionId);
+    await wa.logout();
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -235,11 +274,12 @@ app.get('/api/sample-excel', (req, res) => {
   }
 });
 
-// 7. Campaign Controls
+// 7. Campaign Controls (Session Scoped)
 app.post('/api/campaign/start', async (req, res) => {
   try {
     const { contacts, templates, clinicConfig, settings } = req.body;
-    const status = await campaignQueue.start({ contacts, templates, clinicConfig, settings });
+    const queue = campaignManager.getQueue(req.sessionId);
+    const status = await queue.start({ contacts, templates, clinicConfig, settings });
     res.json({ success: true, ...status });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
@@ -247,22 +287,22 @@ app.post('/api/campaign/start', async (req, res) => {
 });
 
 app.post('/api/campaign/pause', (req, res) => {
-  campaignQueue.pause();
+  campaignManager.getQueue(req.sessionId).pause();
   res.json({ success: true, message: 'Campaign paused' });
 });
 
 app.post('/api/campaign/resume', (req, res) => {
-  campaignQueue.resume();
+  campaignManager.getQueue(req.sessionId).resume();
   res.json({ success: true, message: 'Campaign resumed' });
 });
 
 app.post('/api/campaign/stop', (req, res) => {
-  campaignQueue.stop();
+  campaignManager.getQueue(req.sessionId).stop();
   res.json({ success: true, message: 'Campaign stopped' });
 });
 
 app.get('/api/campaign/status', (req, res) => {
-  res.json({ success: true, ...campaignQueue.getStatus() });
+  res.json({ success: true, ...campaignManager.getQueue(req.sessionId).getStatus() });
 });
 
 // Serve static production build of client if available
@@ -280,9 +320,14 @@ if (fs.existsSync(clientDistPath)) {
 const PORT = process.env.PORT || 5050;
 server.listen(PORT, () => {
   console.log(`🚀 DocReview Pro Backend Server listening on http://localhost:${PORT}`);
-  // Attempt background auto-connect if auth session exists
-  const authCreds = path.join(__dirname, 'session_auth', 'creds.json');
-  if (fs.existsSync(authCreds)) {
-    waService.init().catch(() => {});
+  
+  // Background auto-connect saved sessions if auth credentials exist
+  const savedSessions = waManager.getAllSavedSessionIds();
+  if (savedSessions.length > 0) {
+    console.log(`🔍 [Startup] Re-initiating ${savedSessions.length} active session(s): ${savedSessions.join(', ')}`);
+    for (const sid of savedSessions) {
+      const wa = waManager.getSession(sid);
+      wa.init().catch((err) => console.log(`Auto-init notice for session ${sid}:`, err.message));
+    }
   }
 });

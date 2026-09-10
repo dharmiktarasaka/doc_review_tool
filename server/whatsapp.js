@@ -20,10 +20,14 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const AUTH_FOLDER = path.join(__dirname, 'session_auth');
+const BASE_AUTH_FOLDER = path.join(__dirname, 'session_auth');
 
-class WhatsAppService {
-  constructor() {
+export class WhatsAppService {
+  constructor(sessionId = 'default') {
+    this.sessionId = sessionId;
+    this.safeSessionId = String(sessionId).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'default';
+    this.authFolder = path.join(BASE_AUTH_FOLDER, this.safeSessionId);
+
     this.sock = null;
     this.qrCode = null;
     this.status = 'disconnected'; // 'disconnected' | 'connecting' | 'qrcode' | 'connected'
@@ -37,7 +41,7 @@ class WhatsAppService {
   }
 
   logDebug(msg) {
-    const entry = `[${new Date().toISOString()}] ${msg}`;
+    const entry = `[${new Date().toISOString()}][${this.sessionId}] ${msg}`;
     console.log(entry);
     this.debugLogs.push(entry);
     if (this.debugLogs.length > 50) this.debugLogs.shift();
@@ -49,7 +53,8 @@ class WhatsAppService {
 
   emitState() {
     if (this.io) {
-      this.io.emit('wa_status', {
+      this.io.to(`session_${this.sessionId}`).emit('wa_status', {
+        sessionId: this.sessionId,
         status: this.status,
         qrCode: this.qrCode,
         user: this.user
@@ -59,6 +64,7 @@ class WhatsAppService {
 
   getStatus() {
     return {
+      sessionId: this.sessionId,
       status: this.status,
       qrCode: this.qrCode,
       user: this.user,
@@ -96,21 +102,21 @@ class WhatsAppService {
       }
 
       // If forceNew, wipe previous stale session files so Baileys generates a fresh QR code
-      if (forceNew && fs.existsSync(AUTH_FOLDER)) {
+      if (forceNew && fs.existsSync(this.authFolder)) {
         try {
-          fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+          fs.rmSync(this.authFolder, { recursive: true, force: true });
           this.logDebug('Cleared auth folder for fresh session');
         } catch (e) {
           this.logDebug('Error clearing auth folder: ' + e.message);
         }
       }
 
-      if (!fs.existsSync(AUTH_FOLDER)) {
-        fs.mkdirSync(AUTH_FOLDER, { recursive: true });
+      if (!fs.existsSync(this.authFolder)) {
+        fs.mkdirSync(this.authFolder, { recursive: true });
       }
 
-      this.logDebug('Loading multiFileAuthState...');
-      const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
+      this.logDebug('Loading multiFileAuthState from ' + this.authFolder);
+      const { state, saveCreds } = await useMultiFileAuthState(this.authFolder);
       this.logDebug('multiFileAuthState loaded successfully');
       
       // Resilient version fetch with latest WhatsApp Web protocol fallback
@@ -140,7 +146,6 @@ class WhatsAppService {
         retryRequestDelayMs: 2000
       });
 
-      this.logDebug('Socket instance created, attaching event listeners...');
       this.sock.ev.on('creds.update', saveCreds);
 
       this.sock.ev.on('connection.update', async (update) => {
@@ -193,8 +198,8 @@ class WhatsAppService {
               this.user = null;
               this.reconnectAttempts = 0;
               try {
-                if (fs.existsSync(AUTH_FOLDER)) {
-                  fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+                if (fs.existsSync(this.authFolder)) {
+                  fs.rmSync(this.authFolder, { recursive: true, force: true });
                 }
               } catch (_) {}
               this.emitState();
@@ -251,8 +256,8 @@ class WhatsAppService {
 
     // Delete session files
     try {
-      if (fs.existsSync(AUTH_FOLDER)) {
-        fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+      if (fs.existsSync(this.authFolder)) {
+        fs.rmSync(this.authFolder, { recursive: true, force: true });
       }
     } catch (e) {
       console.warn('Could not remove auth folder:', e.message);
@@ -328,4 +333,64 @@ class WhatsAppService {
   }
 }
 
-export const waService = new WhatsAppService();
+export class WhatsAppManager {
+  constructor() {
+    this.sessions = new Map();
+    this.io = null;
+    this.migrateLegacySession();
+  }
+
+  migrateLegacySession() {
+    try {
+      const baseAuth = BASE_AUTH_FOLDER;
+      const legacyCreds = path.join(baseAuth, 'creds.json');
+      const defaultFolder = path.join(baseAuth, 'default');
+      if (fs.existsSync(legacyCreds) && !fs.existsSync(defaultFolder)) {
+        fs.mkdirSync(defaultFolder, { recursive: true });
+        const files = fs.readdirSync(baseAuth);
+        for (const file of files) {
+          const src = path.join(baseAuth, file);
+          const stat = fs.statSync(src);
+          if (stat.isFile()) {
+            fs.renameSync(src, path.join(defaultFolder, file));
+          }
+        }
+        console.log('📦 [WhatsAppManager] Migrated legacy single-tenant credentials to session "default"');
+      }
+    } catch (err) {
+      console.warn('Legacy session migration notice:', err.message);
+    }
+  }
+
+  setSocketIO(io) {
+    this.io = io;
+    for (const service of this.sessions.values()) {
+      service.setSocketIO(io);
+    }
+  }
+
+  getSession(sessionId = 'default') {
+    const safeId = String(sessionId || 'default').replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'default';
+    if (!this.sessions.has(safeId)) {
+      const service = new WhatsAppService(safeId);
+      if (this.io) service.setSocketIO(this.io);
+      this.sessions.set(safeId, service);
+    }
+    return this.sessions.get(safeId);
+  }
+
+  getAllSavedSessionIds() {
+    if (!fs.existsSync(BASE_AUTH_FOLDER)) return [];
+    try {
+      const entries = fs.readdirSync(BASE_AUTH_FOLDER, { withFileTypes: true });
+      return entries
+        .filter((d) => d.isDirectory() && fs.existsSync(path.join(BASE_AUTH_FOLDER, d.name, 'creds.json')))
+        .map((d) => d.name);
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+export const waManager = new WhatsAppManager();
+export const waService = waManager.getSession('default');

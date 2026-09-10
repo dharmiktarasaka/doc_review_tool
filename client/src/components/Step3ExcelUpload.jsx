@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileSpreadsheet, Download, CheckCircle2, AlertTriangle, Users, Phone, ArrowRight, ArrowLeft, Search, Trash2 } from 'lucide-react';
 import { getApiBaseUrl } from '../config.js';
+import { fetchWithSession } from '../services/sessionService.js';
 
 export default function Step3ExcelUpload({
   contactsData,
@@ -52,7 +53,7 @@ export default function Step3ExcelUpload({
 
     try {
       const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/api/upload-excel`, {
+      const res = await fetchWithSession(`${baseUrl}/api/upload-excel`, {
         method: 'POST',
         body: formData
       });

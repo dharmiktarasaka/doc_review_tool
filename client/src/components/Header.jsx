@@ -15,7 +15,14 @@ import {
   Radio
 } from 'lucide-react';
 
-export default function Header({ waStatus, onLogout, onScrollToStudio, onOpenServerSettings }) {
+export default function Header({ 
+  waStatus, 
+  workspaceId, 
+  onLogout, 
+  onScrollToStudio, 
+  onOpenServerSettings, 
+  onOpenWorkspaceModal 
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -171,6 +178,19 @@ export default function Header({ waStatus, onLogout, onScrollToStudio, onOpenSer
             </div>
           )}
 
+          {/* Private Workspace Identity & Security Button */}
+          <button 
+            className="nav-btn-glass" 
+            title="Private Workspace & Multi-Device Sync" 
+            onClick={onOpenWorkspaceModal}
+            style={{ borderColor: 'rgba(16, 185, 129, 0.35)', background: 'rgba(16, 185, 129, 0.08)' }}
+          >
+            <ShieldCheck size={14} color="#10b981" />
+            <span className="nav-btn-label" style={{ fontWeight: 600, color: '#065f46' }}>
+              {workspaceId ? workspaceId : 'Workspace'}
+            </span>
+          </button>
+
           {/* Backend Server Settings Button */}
           <button 
             className="nav-btn-glass" 
@@ -237,6 +257,14 @@ export default function Header({ waStatus, onLogout, onScrollToStudio, onOpenSer
           </div>
 
           <div className="mobile-nav-footer">
+            <button 
+              className="btn btn-secondary w-full"
+              style={{ justifyContent: 'center', width: '100%', borderColor: 'rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.08)', color: '#065f46', marginBottom: '8px' }}
+              onClick={() => { setMobileMenuOpen(false); onOpenWorkspaceModal(); }}
+            >
+              <ShieldCheck size={15} color="#10b981" />
+              <span>Workspace: {workspaceId || 'Private'}</span>
+            </button>
             <button 
               className="btn btn-secondary w-full"
               style={{ justifyContent: 'center', width: '100%' }}

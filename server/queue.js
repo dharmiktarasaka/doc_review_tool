@@ -1,8 +1,12 @@
-import { waService } from './whatsapp.js';
+import { waManager } from './whatsapp.js';
 import { formatReviewMessage } from './templates.js';
 
-class CampaignQueue {
-  constructor() {
+export class CampaignQueue {
+  constructor(sessionId = 'default', waService = null) {
+    this.sessionId = sessionId;
+    this.safeSessionId = String(sessionId).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'default';
+    this.waService = waService || waManager.getSession(this.safeSessionId);
+
     this.io = null;
     this.isRunning = false;
     this.isPaused = false;
@@ -46,7 +50,8 @@ class CampaignQueue {
 
   emitUpdate() {
     if (this.io) {
-      this.io.emit('campaign_update', {
+      this.io.to(`session_${this.sessionId}`).emit('campaign_update', {
+        sessionId: this.sessionId,
         stats: this.stats,
         isRunning: this.isRunning,
         isPaused: this.isPaused
@@ -57,6 +62,7 @@ class CampaignQueue {
   log(type, message, details = {}) {
     const entry = {
       id: Date.now() + Math.random().toString(36).substring(2, 6),
+      sessionId: this.sessionId,
       timestamp: new Date().toLocaleTimeString(),
       type, // 'info' | 'success' | 'warning' | 'error' | 'security'
       message,
@@ -66,12 +72,13 @@ class CampaignQueue {
     if (this.logs.length > 200) this.logs.pop();
 
     if (this.io) {
-      this.io.emit('campaign_log', entry);
+      this.io.to(`session_${this.sessionId}`).emit('campaign_log', entry);
     }
   }
 
   getStatus() {
     return {
+      sessionId: this.sessionId,
       stats: this.stats,
       isRunning: this.isRunning,
       isPaused: this.isPaused,
@@ -113,7 +120,7 @@ class CampaignQueue {
       throw new Error('Please select at least 1 review template.');
     }
 
-    if (waService.getStatus().status !== 'connected') {
+    if (this.waService.getStatus().status !== 'connected') {
       throw new Error('WhatsApp is not connected. Please connect in Step 1 first.');
     }
 
@@ -143,7 +150,7 @@ class CampaignQueue {
 
     // Run execution in background loop
     this.runQueue().catch((err) => {
-      console.error('Queue execution error:', err);
+      console.error(`[CampaignQueue][${this.sessionId}] Execution error:`, err);
     });
 
     return this.getStatus();
@@ -160,7 +167,7 @@ class CampaignQueue {
         this.emitUpdate();
 
         // 1. Format Phone Number JID
-        const jid = waService.formatToJid(
+        const jid = this.waService.formatToJid(
           contact.phone || contact.mobile || contact.contact,
           this.clinicConfig.default_country_code || '91'
         );
@@ -186,14 +193,14 @@ class CampaignQueue {
         if (this.settings.simulateTyping) {
           const typingDuration = (this.settings.typingSeconds || 3) * 1000;
           this.log('info', `Simulating typing for ${contact.name || contact.phone}... (${typingDuration / 1000}s)`);
-          await waService.simulateTyping(jid, typingDuration);
+          await this.waService.simulateTyping(jid, typingDuration);
         }
 
         await this.checkPauseOrAbort();
 
         // 4. Send Message via WhatsApp
         try {
-          await waService.sendMessage(jid, personalizedMessage);
+          await this.waService.sendMessage(jid, personalizedMessage);
           this.stats.sent++;
           this.stats.pending--;
           this.log('success', `Sent review invitation to ${contact.name || contact.phone}`, {
@@ -292,4 +299,30 @@ class CampaignQueue {
   }
 }
 
-export const campaignQueue = new CampaignQueue();
+export class CampaignManager {
+  constructor() {
+    this.queues = new Map();
+    this.io = null;
+  }
+
+  setSocketIO(io) {
+    this.io = io;
+    for (const queue of this.queues.values()) {
+      queue.setSocketIO(io);
+    }
+  }
+
+  getQueue(sessionId = 'default') {
+    const safeId = String(sessionId || 'default').replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'default';
+    if (!this.queues.has(safeId)) {
+      const wa = waManager.getSession(safeId);
+      const queue = new CampaignQueue(safeId, wa);
+      if (this.io) queue.setSocketIO(this.io);
+      this.queues.set(safeId, queue);
+    }
+    return this.queues.get(safeId);
+  }
+}
+
+export const campaignManager = new CampaignManager();
+export const campaignQueue = campaignManager.getQueue('default');

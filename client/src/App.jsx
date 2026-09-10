@@ -10,16 +10,21 @@ import Features from './components/Features.jsx';
 import FAQSection from './components/FAQSection.jsx';
 import Footer from './components/Footer.jsx';
 import BackendSettingsModal from './components/BackendSettingsModal.jsx';
-import { getApiBaseUrl, isLocalEnvironment } from './config.js';
+import WorkspaceModal from './components/WorkspaceModal.jsx';
+import { getApiBaseUrl } from './config.js';
+import { getWorkspaceId, fetchWithSession } from './services/sessionService.js';
 import { Smartphone, Sparkles, FileSpreadsheet, Send, ShieldCheck, Check } from 'lucide-react';
 
 export default function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
+  const [workspaceId, setWorkspaceIdState] = useState(() => getWorkspaceId());
+
   const studioRef = useRef(null);
   const connectingStartedAtRef = useRef(0);
 
-  // WhatsApp connection state
+  // WhatsApp connection state (strictly scoped to active workspace)
   const [waStatus, setWaStatus] = useState({
     status: 'disconnected',
     qrCode: null,
@@ -30,12 +35,18 @@ export default function App() {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([1, 2, 3]);
 
-  // Clinic details
-  const [clinicConfig, setClinicConfig] = useState({
-    clinic_name: 'CareWell Multispecialty Clinic',
-    doctor_name: 'Dr. Aryan Mehta, MD',
-    review_link: 'https://g.page/r/your-google-review-link',
-    default_country_code: '91'
+  // Clinic details (saved per workspace)
+  const [clinicConfig, setClinicConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`docreview_clinic_${getWorkspaceId()}`);
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return {
+      clinic_name: 'CareWell Multispecialty Clinic',
+      doctor_name: 'Dr. Aryan Mehta, MD',
+      review_link: 'https://g.page/r/your-google-review-link',
+      default_country_code: '91'
+    };
   });
 
   // Excel Contacts
@@ -56,18 +67,64 @@ export default function App() {
     logs: []
   });
 
-  // Socket.io & Polling initialization
+  // Save clinic config changes to localStorage for this specific workspace
+  const handleChangeClinicConfig = (field, value) => {
+    setClinicConfig((prev) => {
+      const updated = { ...prev, [field]: value };
+      try {
+        localStorage.setItem(`docreview_clinic_${workspaceId}`, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+  };
+
+  // Switch Workspace Handler (Multi-Device Sync / Isolation)
+  const handleWorkspaceChanged = (newWorkspaceId) => {
+    setWorkspaceIdState(newWorkspaceId);
+
+    // Reset local UI states so previous workspace data is not leaked
+    setWaStatus({ status: 'disconnected', qrCode: null, user: null });
+    setContactsData(null);
+    setCampaignState({
+      isRunning: false,
+      isPaused: false,
+      stats: { total: 0, sent: 0, failed: 0, pending: 0, status: 'idle', cooldownRemaining: 0 },
+      logs: []
+    });
+
+    // Load clinicConfig for the new workspace if saved
+    try {
+      const saved = localStorage.getItem(`docreview_clinic_${newWorkspaceId}`);
+      if (saved) {
+        setClinicConfig(JSON.parse(saved));
+      } else {
+        setClinicConfig({
+          clinic_name: 'CareWell Multispecialty Clinic',
+          doctor_name: 'Dr. Aryan Mehta, MD',
+          review_link: 'https://g.page/r/your-google-review-link',
+          default_country_code: '91'
+        });
+      }
+    } catch (_) {}
+  };
+
+  // Socket.io & Polling initialization, reactive to workspaceId
   useEffect(() => {
     const baseUrl = getApiBaseUrl();
-    const socket = baseUrl 
-      ? io(baseUrl, { 
-          transports: ['polling', 'websocket'],
-          reconnectionAttempts: 10,
-          timeout: 10000
-        }) 
-      : io({ transports: ['polling', 'websocket'] });
+    const socketOptions = {
+      transports: ['polling', 'websocket'],
+      auth: { sessionId: workspaceId, workspaceId },
+      query: { sessionId: workspaceId, workspaceId },
+      reconnectionAttempts: 10,
+      timeout: 10000
+    };
+
+    const socket = baseUrl ? io(baseUrl, socketOptions) : io(socketOptions);
 
     socket.on('wa_status', (data) => {
+      // Ensure this update belongs to our active workspace
+      if (data.sessionId && data.sessionId !== workspaceId) return;
+
       setWaStatus((prev) => {
         const isRecentlyConnecting = prev.status === 'connecting' && (Date.now() - connectingStartedAtRef.current < 45000);
         if (isRecentlyConnecting && data.status === 'disconnected' && !data.qrCode) {
@@ -81,6 +138,7 @@ export default function App() {
     });
 
     socket.on('campaign_update', (data) => {
+      if (data.sessionId && data.sessionId !== workspaceId) return;
       setCampaignState((prev) => ({
         ...prev,
         stats: data.stats,
@@ -90,20 +148,20 @@ export default function App() {
     });
 
     socket.on('campaign_log', (entry) => {
+      if (entry.sessionId && entry.sessionId !== workspaceId) return;
       setCampaignState((prev) => ({
         ...prev,
         logs: [entry, ...prev.logs.slice(0, 150)]
       }));
     });
 
-    // Active polling fallback for WhatsApp status every 2s (critical for cloud deployments like Render & Vercel)
+    // Active polling fallback for WhatsApp status every 2.5s
     const pollInterval = setInterval(() => {
-      fetch(`${baseUrl}/api/whatsapp/status`)
+      fetchWithSession(`${baseUrl}/api/whatsapp/status`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
             setWaStatus((prev) => {
-              // Guard: don't let transient disconnected response crush active connecting state
               const isRecentlyConnecting = prev.status === 'connecting' && (Date.now() - connectingStartedAtRef.current < 45000);
               if (isRecentlyConnecting && data.status === 'disconnected' && !data.qrCode) {
                 return prev;
@@ -124,10 +182,10 @@ export default function App() {
           }
         })
         .catch(() => {});
-    }, 2000);
+    }, 2500);
 
     // Fetch initial templates
-    fetch(`${baseUrl}/api/templates`)
+    fetchWithSession(`${baseUrl}/api/templates`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.templates) {
@@ -136,8 +194,8 @@ export default function App() {
       })
       .catch((err) => console.error('Error fetching templates:', err));
 
-    // Fetch initial campaign state
-    fetch(`${baseUrl}/api/campaign/status`)
+    // Fetch initial campaign state for this workspace
+    fetchWithSession(`${baseUrl}/api/campaign/status`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -156,16 +214,16 @@ export default function App() {
       clearInterval(pollInterval);
       socket.disconnect();
     };
-  }, []);
+  }, [workspaceId]);
 
-  // WhatsApp Handlers
+  // WhatsApp Handlers (Session Scoped)
   const handleConnectWA = async () => {
     const baseUrl = getApiBaseUrl();
     connectingStartedAtRef.current = Date.now();
 
     try {
       setWaStatus((prev) => ({ ...prev, status: 'connecting' }));
-      const res = await fetch(`${baseUrl}/api/whatsapp/connect`, {
+      const res = await fetchWithSession(`${baseUrl}/api/whatsapp/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force: true })
@@ -181,7 +239,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error connecting WhatsApp:', err);
-      alert('Could not reach the backend server. On Render free tier, the server sleeps when inactive and takes ~30-45 seconds to wake up. Please wait a moment and try again.');
+      alert('Could not reach backend server. On free tier, the server sleeps when inactive and takes ~30-45 seconds to wake up. Please wait a moment and try again.');
       connectingStartedAtRef.current = 0;
       setWaStatus((prev) => ({ ...prev, status: 'disconnected' }));
     }
@@ -191,7 +249,7 @@ export default function App() {
     try {
       connectingStartedAtRef.current = 0;
       const baseUrl = getApiBaseUrl();
-      await fetch(`${baseUrl}/api/whatsapp/logout`, { method: 'POST' });
+      await fetchWithSession(`${baseUrl}/api/whatsapp/logout`, { method: 'POST' });
       setWaStatus({ status: 'disconnected', qrCode: null, user: null });
     } catch (err) {
       console.error('Error logging out WhatsApp:', err);
@@ -217,10 +275,6 @@ export default function App() {
     );
   };
 
-  const handleChangeClinicConfig = (field, value) => {
-    setClinicConfig((prev) => ({ ...prev, [field]: value }));
-  };
-
   // Excel Handlers
   const handleContactsUploaded = (data) => {
     setContactsData(data);
@@ -230,11 +284,11 @@ export default function App() {
     setContactsData(null);
   };
 
-  // Campaign Handlers
+  // Campaign Handlers (Session Scoped)
   const handleStartCampaign = async (payload) => {
     try {
       const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/api/campaign/start`, {
+      const res = await fetchWithSession(`${baseUrl}/api/campaign/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -250,18 +304,18 @@ export default function App() {
 
   const handlePauseCampaign = async () => {
     const baseUrl = getApiBaseUrl();
-    await fetch(`${baseUrl}/api/campaign/pause`, { method: 'POST' });
+    await fetchWithSession(`${baseUrl}/api/campaign/pause`, { method: 'POST' });
   };
 
   const handleResumeCampaign = async () => {
     const baseUrl = getApiBaseUrl();
-    await fetch(`${baseUrl}/api/campaign/resume`, { method: 'POST' });
+    await fetchWithSession(`${baseUrl}/api/campaign/resume`, { method: 'POST' });
   };
 
   const handleStopCampaign = async () => {
     if (window.confirm('Are you sure you want to stop this campaign?')) {
       const baseUrl = getApiBaseUrl();
-      await fetch(`${baseUrl}/api/campaign/stop`, { method: 'POST' });
+      await fetchWithSession(`${baseUrl}/api/campaign/stop`, { method: 'POST' });
     }
   };
 
@@ -275,15 +329,23 @@ export default function App() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header
         waStatus={waStatus}
+        workspaceId={workspaceId}
         onLogout={handleLogoutWA}
         onScrollToStudio={scrollToStudio}
         onOpenServerSettings={() => setIsSettingsOpen(true)}
+        onOpenWorkspaceModal={() => setIsWorkspaceModalOpen(true)}
       />
 
       <BackendSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onSaved={() => {}}
+      />
+
+      <WorkspaceModal
+        isOpen={isWorkspaceModalOpen}
+        onClose={() => setIsWorkspaceModalOpen(false)}
+        onWorkspaceChanged={handleWorkspaceChanged}
       />
 
       <Hero onStart={scrollToStudio} />
@@ -314,7 +376,7 @@ export default function App() {
               {selectedTemplateIds.length > 0 ? <Check size={14} /> : '2'}
             </div>
             <Sparkles size={16} />
-            <span>2. Doctor Templates ({selectedTemplateIds.length}/5)</span>
+            <span>2. Review Templates</span>
           </button>
 
           <span className="step-arrow">→</span>
@@ -327,22 +389,24 @@ export default function App() {
               {contactsData ? <Check size={14} /> : '3'}
             </div>
             <FileSpreadsheet size={16} />
-            <span>3. Upload Excel {contactsData ? `(${contactsData.validContacts})` : ''}</span>
+            <span>3. Import Patients</span>
           </button>
 
           <span className="step-arrow">→</span>
 
           <button
-            className={`step-nav-btn ${currentStep === 4 ? 'active' : ''} ${campaignState.isRunning ? 'active' : ''}`}
+            className={`step-nav-btn ${currentStep === 4 ? 'active' : ''} ${campaignState?.stats?.status === 'completed' ? 'completed' : ''}`}
             onClick={() => setCurrentStep(4)}
           >
-            <div className="step-number">4</div>
+            <div className="step-number">
+              {campaignState?.stats?.status === 'completed' ? <Check size={14} /> : '4'}
+            </div>
             <Send size={16} />
-            <span>4. Anti-Ban Dispatcher</span>
+            <span>4. Dispatch Reviews</span>
           </button>
         </div>
 
-        {/* Step 1: WhatsApp Connect */}
+        {/* STEP 1: WhatsApp Web Multi-Device Pairing */}
         {currentStep === 1 && (
           <div className="step-content">
             <Step1WhatsApp
@@ -354,23 +418,23 @@ export default function App() {
           </div>
         )}
 
-        {/* Step 2: Templates & Clinic Details */}
+        {/* STEP 2: Doctor Template Customizer */}
         {currentStep === 2 && (
           <div className="step-content">
             <Step2Templates
               templates={templates}
               selectedTemplateIds={selectedTemplateIds}
               onToggleTemplate={handleToggleTemplate}
+              onUpdateTemplateText={handleUpdateTemplateText}
               clinicConfig={clinicConfig}
               onChangeClinicConfig={handleChangeClinicConfig}
-              onUpdateTemplateText={handleUpdateTemplateText}
               onNext={() => setCurrentStep(3)}
               onBack={() => setCurrentStep(1)}
             />
           </div>
         )}
 
-        {/* Step 3: Excel Upload */}
+        {/* STEP 3: Excel Upload & Column Normalization */}
         {currentStep === 3 && (
           <div className="step-content">
             <Step3ExcelUpload
@@ -383,10 +447,11 @@ export default function App() {
           </div>
         )}
 
-        {/* Step 4: Dispatcher & Anti-Ban Control */}
+        {/* STEP 4: Smart Anti-Ban Campaign Dispatcher */}
         {currentStep === 4 && (
           <div className="step-content">
             <Step4Dispatcher
+              waStatus={waStatus}
               campaignState={campaignState}
               onStartCampaign={handleStartCampaign}
               onPauseCampaign={handlePauseCampaign}
