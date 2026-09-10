@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckSquare, Square, Edit3, Eye, Sparkles, Building2, Stethoscope, Link as LinkIcon, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { CheckSquare, Square, Edit3, Eye, Sparkles, Building2, Stethoscope, Link as LinkIcon, CheckCircle2, ArrowRight, ArrowLeft, ExternalLink, Globe } from 'lucide-react';
 
 export default function Step2Templates({
   templates,
@@ -58,57 +58,178 @@ export default function Step2Templates({
         </p>
       </div>
 
-      {/* Clinic Configuration Form */}
+      {/* Premium Clinic Configuration Profile Card */}
       <div style={{
-        background: 'rgba(15, 23, 42, 0.65)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '36px'
+        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+        border: '1px solid #e2e8f0',
+        borderRadius: '20px',
+        padding: '28px 32px',
+        marginBottom: '36px',
+        boxShadow: '0 10px 25px -5px rgba(2, 132, 199, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03)',
+        position: 'relative'
       }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8' }}>
-          <Building2 size={18} />
-          <span>Clinic & Doctor Profile (Auto-Hydrated into Messages)</span>
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
-          <div className="input-group">
-            <label className="input-label">Clinic / Hospital Name</label>
-            <input
-              type="text"
-              className="input-field"
-              value={clinicConfig.clinic_name}
-              onChange={(e) => onChangeClinicConfig('clinic_name', e.target.value)}
-              placeholder="e.g. CareWell Multispecialty Clinic"
-            />
+        {/* Card Header Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+              color: '#0284c7',
+              padding: '10px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.15)'
+            }}>
+              <Building2 size={20} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', margin: 0, letterSpacing: '-0.3px' }}>
+                Clinic & Doctor Profile
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Automatically populates placeholders like <code>{`{{clinic_name}}`}</code> & <code>{`{{doctor_name}}`}</code>
+              </p>
+            </div>
           </div>
 
-          <div className="input-group">
-            <label className="input-label">Doctor's Name & Title</label>
-            <input
-              type="text"
-              className="input-field"
-              value={clinicConfig.doctor_name}
-              onChange={(e) => onChangeClinicConfig('doctor_name', e.target.value)}
-              placeholder="e.g. Dr. Aryan Mehta, MD"
-            />
+          <div style={{
+            background: '#ecfdf5',
+            border: '1px solid #a7f3d0',
+            padding: '6px 14px',
+            borderRadius: '999px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#059669',
+            fontSize: '12px',
+            fontWeight: '700'
+          }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+            <span>Live Auto-Hydration Active</span>
           </div>
+        </div>
 
-          <div className="input-group" style={{ gridColumn: 'span 2' }}>
-            <label className="input-label">Google Business Profile Review Link</label>
+        {/* Inputs Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '22px' }}>
+          {/* Clinic Name */}
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>
+              <Building2 size={13} color="#0284c7" />
+              <span>Clinic / Hospital Name</span>
+            </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
                 className="input-field"
-                value={clinicConfig.review_link}
-                onChange={(e) => onChangeClinicConfig('review_link', e.target.value)}
-                placeholder="e.g. https://g.page/r/Cb4dafd.../review or maps.app.goo.gl/..."
-                style={{ paddingLeft: '40px' }}
+                value={clinicConfig.clinic_name}
+                onChange={(e) => onChangeClinicConfig('clinic_name', e.target.value)}
+                placeholder="e.g. CareWell Multispecialty Clinic"
+                style={{
+                  paddingLeft: '40px',
+                  fontWeight: '500',
+                  color: 'var(--text-main)',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1'
+                }}
               />
-              <LinkIcon size={18} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              <Building2 size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#94a3b8' }} />
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-faint)', marginTop: '6px' }}>
-              💡 Tip: Copy your review shortlink directly from your Google Business Profile &gt; "Ask for reviews".
+          </div>
+
+          {/* Doctor Name */}
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>
+              <Stethoscope size={13} color="#0284c7" />
+              <span>Doctor's Name & Title</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                className="input-field"
+                value={clinicConfig.doctor_name}
+                onChange={(e) => onChangeClinicConfig('doctor_name', e.target.value)}
+                placeholder="e.g. Dr. Aryan Mehta, MD"
+                style={{
+                  paddingLeft: '40px',
+                  fontWeight: '500',
+                  color: 'var(--text-main)',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1'
+                }}
+              />
+              <Stethoscope size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#94a3b8' }} />
+            </div>
+          </div>
+
+          {/* Review Link (Span 2) */}
+          <div className="input-group" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569', margin: 0 }}>
+                <Globe size={13} color="#0284c7" />
+                <span>Google Business Profile Review Link</span>
+              </label>
+              {clinicConfig.review_link && (
+                <button
+                  type="button"
+                  onClick={() => window.open(clinicConfig.review_link, '_blank')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                  title="Test link in new tab"
+                >
+                  <span>Test Link</span>
+                  <ExternalLink size={12} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ position: 'relative', display: 'flex', gap: '10px' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={clinicConfig.review_link}
+                  onChange={(e) => onChangeClinicConfig('review_link', e.target.value)}
+                  placeholder="e.g. https://g.page/r/your-review-link or maps.app.goo.gl/..."
+                  style={{
+                    paddingLeft: '40px',
+                    fontWeight: '500',
+                    color: 'var(--text-main)',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1'
+                  }}
+                />
+                <LinkIcon size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#94a3b8' }} />
+              </div>
+            </div>
+
+            {/* Smart Helper Tip */}
+            <div style={{
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              marginTop: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: '#0369a1',
+              fontSize: '12.5px'
+            }}>
+              <span style={{ fontSize: '14px' }}>💡</span>
+              <span>
+                <b>Quick Tip:</b> Open your Google Business Profile dashboard, click <b>"Ask for reviews"</b>, and paste your direct shortlink here.
+              </span>
             </div>
           </div>
         </div>
@@ -155,7 +276,7 @@ export default function Step2Templates({
                         <span className="template-badge">{tpl.category}</span>
                         <span style={{ fontSize: '12px', color: 'var(--text-faint)' }}>#{tpl.id}</span>
                       </div>
-                      <h4 style={{ fontSize: '15px', fontWeight: '700', color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
+                      <h4 style={{ fontSize: '15px', fontWeight: '700', color: isSelected ? '#0284c7' : 'var(--text-main)' }}>
                         {tpl.title}
                       </h4>
                       <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -171,7 +292,7 @@ export default function Step2Templates({
                       style={{ cursor: 'pointer', padding: '4px' }}
                     >
                       {isSelected ? (
-                        <CheckSquare size={24} color="#06d6a0" />
+                        <CheckSquare size={24} color="#059669" />
                       ) : (
                         <Square size={24} color="var(--text-faint)" />
                       )}
@@ -197,7 +318,7 @@ export default function Step2Templates({
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '5px 12px', fontSize: '12px' }}
@@ -210,7 +331,7 @@ export default function Step2Templates({
                         <span>Edit Text</span>
                       </button>
 
-                      <div style={{ fontSize: '12px', color: '#00b4d8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Eye size={13} />
                         <span>Viewing on simulator</span>
                       </div>
@@ -283,9 +404,9 @@ export default function Step2Templates({
               </div>
             </div>
 
-            {/* Simulated Input bar */}
-            <div style={{ background: '#202c33', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ background: '#2a3942', borderRadius: '20px', padding: '8px 14px', fontSize: '13px', color: '#8696a0', flex: 1, textAlign: 'left' }}>
+            {/* Simulated Input bar - Authentic WhatsApp light style */}
+            <div style={{ background: '#f0f2f5', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid #e9edef' }}>
+              <div style={{ background: '#ffffff', border: '1px solid #e9edef', borderRadius: '20px', padding: '8px 14px', fontSize: '13px', color: '#667781', flex: 1, textAlign: 'left' }}>
                 Type a message...
               </div>
             </div>
