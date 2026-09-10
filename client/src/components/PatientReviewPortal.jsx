@@ -12,9 +12,11 @@ import {
   ShieldCheck, 
   ArrowRight,
   Camera,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { DEFAULT_GOOGLE_REVIEWS, formatGoogleReview } from '../data/defaultReviews.js';
+import { getApiBaseUrl } from '../config.js';
 
 export default function PatientReviewPortal() {
   const [clinicName, setClinicName] = useState('CareWell Multispecialty Clinic');
@@ -27,6 +29,8 @@ export default function PatientReviewPortal() {
   const [isPosting, setIsPosting] = useState(false);
   const [showCopiedNotice, setShowCopiedNotice] = useState(false);
   const [justCopied, setJustCopied] = useState(false);
+  const [specialty, setSpecialty] = useState('General Practice');
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -37,14 +41,17 @@ export default function PatientReviewPortal() {
     const qTarget = params.get('target');
     const qWorkspace = params.get('ws');
     const qReviewIndex = params.get('r');
+    const qSpecialty = params.get('spec') || params.get('specialty');
 
     const effectiveClinic = qClinic ? decodeURIComponent(qClinic) : 'CareWell Multispecialty Clinic';
     const effectiveDoctor = qDoctor ? decodeURIComponent(qDoctor) : 'Dr. Aryan Mehta, MD';
     const effectiveTarget = qTarget ? decodeURIComponent(qTarget) : 'https://search.google.com/local/writereview';
+    const effectiveSpecialty = qSpecialty ? decodeURIComponent(qSpecialty) : 'General Practice';
 
     setClinicName(effectiveClinic);
     setDoctorName(effectiveDoctor);
     setGoogleReviewLink(effectiveTarget);
+    setSpecialty(effectiveSpecialty);
 
     // Try reading workspace saved reviews from localStorage
     let loadedReviews = DEFAULT_GOOGLE_REVIEWS;
@@ -100,6 +107,38 @@ export default function PatientReviewPortal() {
         navigator.clipboard.writeText(newText).catch(() => {});
       }
     } catch (_) {}
+  };
+
+  const handleGenerateAiSingle = async () => {
+    setIsGeneratingAi(true);
+    try {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/reviews/generate-ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clinicName,
+          doctorName,
+          specialty,
+          count: 1
+        })
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.reviews) && data.reviews[0]) {
+        const uniqueAiText = data.reviews[0];
+        setReviewText(uniqueAiText);
+        if (navigator?.clipboard?.writeText) {
+          navigator.clipboard.writeText(uniqueAiText).catch(() => {});
+        }
+      } else {
+        handleShuffle();
+      }
+    } catch (err) {
+      console.warn('AI review generation fallback notice:', err);
+      handleShuffle();
+    } finally {
+      setIsGeneratingAi(false);
+    }
   };
 
   const handleCopyOnly = (e) => {
@@ -283,32 +322,61 @@ export default function PatientReviewPortal() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '6px'
+              marginBottom: '6px',
+              flexWrap: 'wrap',
+              gap: '6px'
             }}>
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#5f6368' }}>
-                Your Review (Auto-Drafted from Suggestion #{currentIndex + 1})
+                Your Review {isGeneratingAi ? '(✨ AI writing unique text...)' : `(Suggestion #${currentIndex + 1})`}
               </label>
-              <button
-                type="button"
-                onClick={handleShuffle}
-                style={{
-                  background: '#f1f3f4',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '3px 8px',
-                  fontSize: '11.5px',
-                  fontWeight: '600',
-                  color: '#1a73e8',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                title="Shuffle to another pre-written review"
-              >
-                <Shuffle size={12} />
-                <span>Shuffle Review</span>
-              </button>
+              
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleGenerateAiSingle}
+                  disabled={isGeneratingAi}
+                  style={{
+                    background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                    border: '1px solid #7dd3fc',
+                    borderRadius: '6px',
+                    padding: '3px 10px',
+                    fontSize: '11.5px',
+                    fontWeight: '700',
+                    color: '#0284c7',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 1px 3px rgba(2, 132, 199, 0.12)'
+                  }}
+                  title="Craft a completely unique, natural AI review"
+                >
+                  <Sparkles size={12} />
+                  <span>{isGeneratingAi ? 'Writing AI...' : '✨ AI Write Unique Review'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShuffle}
+                  style={{
+                    background: '#f1f3f4',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11.5px',
+                    fontWeight: '600',
+                    color: '#1a73e8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  title="Shuffle to another pre-written review"
+                >
+                  <Shuffle size={12} />
+                  <span>Shuffle</span>
+                </button>
+              </div>
             </div>
 
             <textarea

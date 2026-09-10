@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { waManager } from './whatsapp.js';
 import { campaignManager } from './queue.js';
 import { DEFAULT_DOCTOR_TEMPLATES } from './templates.js';
+import { generateReviews } from './aiService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -303,6 +304,25 @@ app.post('/api/campaign/stop', (req, res) => {
 
 app.get('/api/campaign/status', (req, res) => {
   res.json({ success: true, ...campaignManager.getQueue(req.sessionId).getStatus() });
+});
+
+// 8. AI Review Generation Endpoint (Gemini / OpenAI / Natural Clinical Fallback)
+app.post('/api/reviews/generate-ai', async (req, res) => {
+  try {
+    const { clinicName, doctorName, specialty, count, apiKey, provider } = req.body || {};
+    const result = await generateReviews({
+      clinicName,
+      doctorName,
+      specialty,
+      count,
+      apiKey,
+      provider
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error generating AI reviews:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Serve static production build of client if available

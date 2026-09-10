@@ -64,9 +64,11 @@ export default function App() {
     return {
       clinic_name: 'CareWell Multispecialty Clinic',
       doctor_name: 'Dr. Aryan Mehta, MD',
+      specialty: 'General Practice',
       review_link: 'https://g.page/r/your-google-review-link',
       default_country_code: '91',
-      use_smart_bridge: true
+      use_smart_bridge: true,
+      ai_api_key: ''
     };
   });
 
@@ -108,6 +110,14 @@ export default function App() {
       } catch (_) {}
       return updated;
     });
+  };
+
+  // Batch replace all 10 Google reviews (from AI generator)
+  const handleSetAllGoogleReviews = (newReviews) => {
+    setGoogleReviews(newReviews);
+    try {
+      localStorage.setItem(`docreview_reviews_${workspaceId}`, JSON.stringify(newReviews));
+    } catch (_) {}
   };
 
   // Reset 10 Google reviews back to defaults
@@ -346,9 +356,10 @@ export default function App() {
         const path = window.location.pathname;
         const clinic = encodeURIComponent(finalConfig.clinic_name || 'CareWell Multispecialty Clinic');
         const doc = encodeURIComponent(finalConfig.doctor_name || 'Dr. Aryan Mehta, MD');
+        const spec = encodeURIComponent(finalConfig.specialty || 'General Practice');
         const target = encodeURIComponent(finalConfig.review_link || 'https://search.google.com/local/writereview');
         const ws = encodeURIComponent(workspaceId);
-        finalConfig.review_link = `${origin}${path}?review=1&ws=${ws}&clinic=${clinic}&doc=${doc}&target=${target}`;
+        finalConfig.review_link = `${origin}${path}?review=1&ws=${ws}&clinic=${clinic}&doc=${doc}&spec=${spec}&target=${target}`;
       }
 
       const res = await fetchWithSession(`${baseUrl}/api/campaign/start`, {
@@ -497,6 +508,7 @@ export default function App() {
               googleReviews={googleReviews}
               onUpdateGoogleReview={handleUpdateGoogleReview}
               onResetGoogleReviews={handleResetGoogleReviews}
+              onSetAllGoogleReviews={handleSetAllGoogleReviews}
               workspaceId={workspaceId}
               onNext={() => setCurrentStep(3)}
               onBack={() => setCurrentStep(1)}

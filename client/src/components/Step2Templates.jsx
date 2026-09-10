@@ -17,9 +17,32 @@ import {
   MessageSquare, 
   RotateCcw, 
   Copy, 
-  Check 
+  Check,
+  Activity,
+  KeyRound,
+  Bot,
+  Wand2,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle
 } from 'lucide-react';
 import { DEFAULT_GOOGLE_REVIEWS, formatGoogleReview } from '../data/defaultReviews.js';
+import { getApiBaseUrl } from '../config.js';
+
+const CLINIC_SPECIALTIES = [
+  'General Practice / Multispecialty',
+  'Dental Care & Dentistry',
+  'Dermatology & Skin Care',
+  'Pediatrics / Child Care',
+  'Cardiology / Heart Care',
+  'Orthopedics & Joint Care',
+  'Eye Care / Ophthalmology',
+  'ENT / Ear, Nose & Throat',
+  'Gynecology & Women’s Health',
+  'Physiotherapy & Rehabilitation',
+  'Diagnostic Lab & Pathology',
+  'Homeopathy & Ayurveda'
+];
 
 export default function Step2Templates({
   templates,
@@ -31,6 +54,7 @@ export default function Step2Templates({
   googleReviews = DEFAULT_GOOGLE_REVIEWS,
   onUpdateGoogleReview,
   onResetGoogleReviews,
+  onSetAllGoogleReviews,
   workspaceId,
   onNext,
   onBack
@@ -42,6 +66,9 @@ export default function Step2Templates({
   const [editingGoogleReviewId, setEditingGoogleReviewId] = useState(null);
   const [editGoogleDraftText, setEditGoogleDraftText] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiNotice, setAiNotice] = useState('');
+  const [showAiSettings, setShowAiSettings] = useState(false);
 
   const selectedCount = selectedTemplateIds.length;
   const isSelectionValid = selectedCount >= 1 && selectedCount <= 5;
@@ -54,9 +81,62 @@ export default function Step2Templates({
     const path = window.location.pathname;
     const clinic = encodeURIComponent(clinicConfig.clinic_name || 'CareWell Multispecialty Clinic');
     const doc = encodeURIComponent(clinicConfig.doctor_name || 'Dr. Aryan Mehta, MD');
+    const spec = encodeURIComponent(clinicConfig.specialty || 'General Practice');
     const target = encodeURIComponent(clinicConfig.review_link || 'https://search.google.com/local/writereview');
     const ws = encodeURIComponent(workspaceId || 'default');
-    return `${origin}${path}?review=1&ws=${ws}&clinic=${clinic}&doc=${doc}&target=${target}`;
+    return `${origin}${path}?review=1&ws=${ws}&clinic=${clinic}&doc=${doc}&spec=${spec}&target=${target}`;
+  };
+
+  const handleGenerateAiReviews = async () => {
+    setIsGeneratingAi(true);
+    setAiNotice('');
+    try {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/reviews/generate-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': workspaceId
+        },
+        body: JSON.stringify({
+          clinicName: clinicConfig.clinic_name || 'CareWell Multispecialty Clinic',
+          doctorName: clinicConfig.doctor_name || 'Dr. Aryan Mehta',
+          specialty: clinicConfig.specialty || 'General Practice',
+          count: 10,
+          apiKey: clinicConfig.ai_api_key || '',
+          provider: clinicConfig.ai_provider || 'gemini'
+        })
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.reviews) && data.reviews.length > 0) {
+        const titles = [
+          "Doctor Expertise & Accurate Diagnosis",
+          "Clinic Cleanliness & Helpful Staff",
+          "Fast Recovery & Effective Prescription",
+          "Genuine Medical Advice Without Extra Tests",
+          "Zero Waiting & Smooth Appointment",
+          "Family & Senior-Friendly Comforting Care",
+          "Prompt Attention & Reassuring Guidance",
+          "Transparent & Affordable Consultation",
+          "Humble Bedside Manner & Detailed Explanation",
+          "Highly Recommended by Local Families"
+        ];
+        const newTen = data.reviews.slice(0, 10).map((txt, idx) => ({
+          id: idx + 1,
+          category: titles[idx] || `Review #${idx + 1}`,
+          text: txt
+        }));
+        onSetAllGoogleReviews?.(newTen);
+        setAiNotice(`✓ 10 unique AI reviews generated tailored to ${clinicConfig.specialty || 'your clinic'}!`);
+        setTimeout(() => setAiNotice(''), 6000);
+      } else {
+        alert(data.error || 'Failed to generate reviews. Please try again.');
+      }
+    } catch (err) {
+      alert(`AI review generation error: ${err.message}`);
+    } finally {
+      setIsGeneratingAi(false);
+    }
   };
 
   const handleCopySmartLink = () => {
@@ -227,6 +307,34 @@ export default function Step2Templates({
                 }}
               />
               <Stethoscope size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#94a3b8' }} />
+            </div>
+          </div>
+
+          {/* Medical Specialty */}
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>
+              <Activity size={13} color="#0284c7" />
+              <span>Medical Specialty / Department</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                className="input-field"
+                value={clinicConfig.specialty || 'General Practice / Multispecialty'}
+                onChange={(e) => onChangeClinicConfig('specialty', e.target.value)}
+                style={{
+                  paddingLeft: '38px',
+                  fontWeight: '600',
+                  color: 'var(--text-main)',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  cursor: 'pointer'
+                }}
+              >
+                {CLINIC_SPECIALTIES.map((spec) => (
+                  <option key={spec} value={spec}>{spec}</option>
+                ))}
+              </select>
+              <Activity size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#94a3b8', pointerEvents: 'none' }} />
             </div>
           </div>
 
@@ -649,7 +757,28 @@ export default function Step2Templates({
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleGenerateAiReviews}
+                disabled={isGeneratingAi}
+                className="btn btn-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0ea5e9 40%, #06b6d4 100%)',
+                  padding: '9px 18px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)'
+                }}
+                title="Generate 10 completely unique, human-sounding reviews tailored to your specialty"
+              >
+                <Sparkles size={15} />
+                <span>{isGeneratingAi ? '✨ AI Generating 10 Reviews...' : '✨ AI Generate 10 Fresh Reviews'}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={onResetGoogleReviews}
@@ -660,10 +789,11 @@ export default function Step2Templates({
                 <RotateCcw size={13} />
                 <span>Reset to Defaults</span>
               </button>
+
               <button
                 type="button"
                 onClick={handleTestPatientPortal}
-                className="btn btn-primary"
+                className="btn btn-secondary"
                 style={{ padding: '8px 16px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <span>Preview Patient Portal</span>
@@ -671,6 +801,26 @@ export default function Step2Templates({
               </button>
             </div>
           </div>
+
+          {/* AI Generation Notice Banner */}
+          {aiNotice && (
+            <div style={{
+              background: '#ecfdf5',
+              border: '1px solid #6ee7b7',
+              borderRadius: '12px',
+              padding: '12px 18px',
+              marginBottom: '20px',
+              color: '#065f46',
+              fontSize: '13.5px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <CheckCircle2 size={18} color="#059669" />
+              <span>{aiNotice}</span>
+            </div>
+          )}
 
           {/* Grid of 10 Reviews */}
           <div className="google-reviews-grid">
