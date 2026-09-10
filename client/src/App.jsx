@@ -411,10 +411,10 @@ export default function App() {
           </div>
           <div style={{ textAlign: 'left' }}>
             <h3 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>
-              Why DocReview Pro Guarantees WhatsApp Anti-Ban Safety
+              Why RevU GEN Guarantees WhatsApp Anti-Ban Safety
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: '1.7', maxWidth: '900px' }}>
-              Meta's anti-spam detection flags accounts based on three triggers: (1) identical message content sent repeatedly, (2) inhuman sending speeds (less than 5 seconds), and (3) missing presence updates. DocReview Pro addresses all three: our engine introduces random jitter delays (15-30s), sends authentic "typing..." presence updates, and randomly shuffles between your chosen 1-5 templates with variable spintax greetings.
+              Meta's anti-spam detection flags accounts based on three triggers: (1) identical message content sent repeatedly, (2) inhuman sending speeds (less than 5 seconds), and (3) missing presence updates. RevU GEN addresses all three: our engine introduces random jitter delays (15-30s), sends authentic "typing..." presence updates, and randomly shuffles between your chosen 1-5 templates with variable spintax greetings.
             </p>
           </div>
         </div>

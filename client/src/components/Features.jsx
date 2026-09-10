@@ -39,7 +39,7 @@ export default function Features() {
     <section id="features" style={{ padding: '80px 32px 40px', maxWidth: '1240px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '48px' }}>
         <h2 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '12px' }}>
-          Why Leading Doctors & Clinics Rely on <span className="hero-gradient-text">DocReview Pro</span>
+          Why Leading Doctors & Clinics Rely on <span className="hero-gradient-text">RevU GEN</span>
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px', maxWidth: '650px', margin: '0 auto' }}>
           Turn every successful consultation into a lasting digital reputation asset on Google Maps without risking your WhatsApp account.

@@ -43,12 +43,12 @@ export default function Header({ waStatus, onLogout, onScrollToStudio, onOpenSer
     <header className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
       <div className="navbar-container">
         {/* Brand Logo & Clinic Suite Badge */}
-        <div className="nav-brand" onClick={onScrollToStudio} title="DocReview Pro - Automation Studio">
+        <div className="nav-brand" onClick={onScrollToStudio} title="RevU GEN - Automation Studio">
           <div className="brand-icon-wrapper">
             <div className="brand-icon" style={{ padding: '2px', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.12)' }}>
               <img 
                 src={logoImg} 
-                alt="DocReview Pro Logo" 
+                alt="RevU GEN Logo" 
                 style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }} 
               />
             </div>
@@ -58,7 +58,11 @@ export default function Header({ waStatus, onLogout, onScrollToStudio, onOpenSer
           <div className="brand-meta">
             <div className="brand-title-row">
               <span className="brand-title">
-                DocReview<span className="brand-title-accent">Pro</span>
+                RevU
+                <span className="brand-gen-wrapper">
+                  <span className="brand-gen-glow">GEN</span>
+                  <span className="brand-gen-backdrop"></span>
+                </span>
               </span>
               <span className="brand-badge">
                 <span className="badge-pulse-dot"></span>
