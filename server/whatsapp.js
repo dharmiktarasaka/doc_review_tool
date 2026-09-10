@@ -1,10 +1,18 @@
-import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason,
-  Browsers,
-  fetchLatestBaileysVersion
-} from '@whiskeysockets/baileys';
+import baileysExport, * as baileysAll from '@whiskeysockets/baileys';
 import pino from 'pino';
+
+// Robust Baileys import resolver across all Node/Linux/Windows ESM environments
+const makeWASocket = 
+  (typeof baileysExport === 'function' ? baileysExport : null) ||
+  (baileysExport?.default && typeof baileysExport.default === 'function' ? baileysExport.default : null) ||
+  (baileysAll?.default && typeof baileysAll.default === 'function' ? baileysAll.default : null) ||
+  baileysAll?.makeWASocket ||
+  baileysExport?.makeWASocket;
+
+const useMultiFileAuthState = baileysAll.useMultiFileAuthState || baileysExport?.useMultiFileAuthState;
+const DisconnectReason = baileysAll.DisconnectReason || baileysExport?.DisconnectReason;
+const Browsers = baileysAll.Browsers || baileysExport?.Browsers;
+const fetchLatestBaileysVersion = baileysAll.fetchLatestBaileysVersion || baileysExport?.fetchLatestBaileysVersion;
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
